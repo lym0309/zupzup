@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import { getFoundItemDetail } from '../api/foundItems.js'
 import { createLookupCode } from '../api/lookupCodes.js'
-import { mockMatchFor } from '../mocks/matchResults.js'
-import { hideItem } from '../shared/hiddenItems.js'
+import { getMatchResults, hideMatch } from '../api/matchResults.js'
 import KakaoMap from '../shared/KakaoMap.jsx'
 import { directionsUrl, isMobile, telUrl } from '../shared/kakaoLinks.js'
 import { TAG_LABELS, TAG_ORDER, headline, subCopy, tagNote, tagStatus } from '../shared/matchCopy.js'
@@ -34,11 +33,25 @@ export default function ItemDetailPage() {
     return () => controller.abort()
   }, [atcId, fdSn, key])
 
+  // 매칭 결과에서 왔으면 같은 결과(서버 캐시)에서 이 습득물의 점수·조건을 찾는다
+  const [matches, setMatches] = useState({ lostItemId: null, data: null })
+  useEffect(() => {
+    if (!lostItemId) return
+    const controller = new AbortController()
+    getMatchResults(lostItemId, { signal: controller.signal })
+      .then((data) => setMatches({ lostItemId, data }))
+      .catch((error) => {
+        // 점수를 못 받아도 상세 정보는 보여준다 (매칭 설명 카드만 숨김)
+        if (error.name !== 'AbortError') setMatches({ lostItemId, data: null })
+      })
+    return () => controller.abort()
+  }, [lostItemId])
+
   const loading = result.key !== key
   const item = loading ? null : result.data
-  // TODO(@kim-ch2): 매칭 결과 API(GET /api/lost-items/:id/results)가 생기면 mock 대신 사용 (#25)
-  // mock 점수는 개발 환경에서만. 배포 빌드에서는 매칭 설명 카드를 숨긴다 (가짜 점수가 보이지 않게)
-  const matchInfo = import.meta.env.DEV && item && lostItemId ? mockMatchFor(lostItemId, item) : null
+  const matchData = matches.lostItemId === lostItemId ? matches.data : null
+  const match = matchData?.items.find((it) => it.atcId === atcId && it.fdSn === fdSn)
+  const matchInfo = item && match ? { condition: matchData.condition, match, total: matchData.items.length } : null
 
   const back = lostItemId
     ? { to: `/results/${encodeURIComponent(lostItemId)}`, label: `← 매칭 결과${matchInfo ? ` ${matchInfo.total}건` : ''}` }
@@ -185,6 +198,7 @@ function PlaceCard({ item }) {
 function Actions({ item, lostItemId }) {
   const navigate = useNavigate()
   const [codeState, setCodeState] = useState({ status: 'idle' })
+  const [hideState, setHideState] = useState({ status: 'idle' })
   const placeName = item.orgNm || item.depPlace
   const tel = telUrl(item.tel)
 
@@ -204,10 +218,21 @@ function Actions({ item, lostItemId }) {
     }
   }
 
-  const notMine = () => {
-    hideItem(lostItemId, item.atcId, item.fdSn)
-    navigate(`/results/${encodeURIComponent(lostItemId)}`)
+  // 서버에 숨기고 결과로 돌아간다. 실패하면 이 화면에 그대로 두고 안내
+  const notMine = async () => {
+    setHideState({ status: 'saving' })
+    try {
+      await hideMatch(lostItemId, item.atcId, item.fdSn)
+      navigate(`/results/${encodeURIComponent(lostItemId)}`)
+    } catch {
+      setHideState({ status: 'error' })
+    }
   }
+  const hideSub = {
+    idle: '결과에서 숨기기',
+    saving: '숨기는 중…',
+    error: '숨기지 못했어요. 다시 눌러 주세요',
+  }[hideState.status]
 
   const codeSub = {
     idle: '나중에 다시 열기',
@@ -242,8 +267,8 @@ function Actions({ item, lostItemId }) {
           <button type="button" className="detail-action" onClick={saveCode} disabled={codeState.status === 'saving'}>
             <ActionText title="조회 코드 저장" sub={codeSub} />
           </button>
-          <button type="button" className="detail-action" onClick={notMine}>
-            <ActionText title="내 물건이 아니에요" sub="결과에서 숨기기" />
+          <button type="button" className="detail-action" onClick={notMine} disabled={hideState.status === 'saving'}>
+            <ActionText title="내 물건이 아니에요" sub={hideSub} />
           </button>
         </>
       )}
