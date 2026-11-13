@@ -49,4 +49,9 @@ export const env = {
     days: toNumber(process.env.COLLECT_DAYS, 30, 1, 90), // 하루 한 번 전체 수집 기간 (오늘 포함)
     recentDays: toNumber(process.env.COLLECT_RECENT_DAYS, 3, 1, 30), // 그 사이 매 회차 수집 기간
   },
+
+  // 카카오 로컬 API (보관기관 좌표 검색). 없으면 지도 좌표 없이 동작
+  kakao: {
+    restApiKey: process.env.KAKAO_REST_API_KEY ?? '',
+  },
 }
