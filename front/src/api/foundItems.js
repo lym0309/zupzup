@@ -12,3 +12,14 @@ export function getFoundItems(query, { signal } = {}) {
   const qs = toSearchParams(query).toString()
   return api.get(`/api/found-items${qs ? `?${qs}` : ''}`, { signal })
 }
+
+/**
+ * 습득물 상세 (GET /api/found-items/:atcId/:fdSn). 경찰청 필드명 그대로
+ * @returns {Promise<{ atcId: string, fdSn: string, fdPrdtNm: string, prdtClNm: string, clrNm: string,
+ *   fdYmd: string, fdHor: string, fdPlace: string, depPlace: string, fdFilePathImg: string,
+ *   csteSteNm: string, fndKeepOrgnSeNm: string, orgNm: string, tel: string, memo: string, isNew: boolean,
+ *   location: { lat: number, lng: number, placeName: string, address: string } | null }>}
+ */
+export function getFoundItemDetail(atcId, fdSn, { signal } = {}) {
+  return api.get(`/api/found-items/${encodeURIComponent(atcId)}/${encodeURIComponent(fdSn)}`, { signal })
+}

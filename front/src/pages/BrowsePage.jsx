@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { Link, useLocation, useSearchParams } from 'react-router'
 import { getFoundItems } from '../api/foundItems.js'
 import { CATEGORIES, COLOR_FAMILIES, PERIODS, REGIONS, colorDisplayName } from '../shared/codes.js'
 import Thumbnail from '../shared/Thumbnail.jsx'
@@ -147,8 +147,13 @@ function FilterSelect({ label, value, onChange, allLabel, options }) {
 }
 
 function ItemCard({ item }) {
+  const { pathname, search } = useLocation()
   return (
-    <Link className="browse-card" to={`/items/${encodeURIComponent(item.atcId)}/${encodeURIComponent(item.fdSn)}`}>
+    <Link
+      className="browse-card"
+      to={`/items/${encodeURIComponent(item.atcId)}/${encodeURIComponent(item.fdSn)}`}
+      state={{ from: `${pathname}${search}` }} // 상세의 "← 전체 습득물"이 같은 필터·페이지로 돌아오도록
+    >
       <Thumbnail item={item} height={150} radius={0} />
       <div className="browse-card__body">
         <div className="browse-card__name-row">
