@@ -104,6 +104,7 @@ npm run collect    # 지금 바로 30일 전체 수집 (서버를 안 띄워도 
 | POST | `/api/lost-items` | 분실물 등록 (아래 참고) |
 | GET | `/api/lost-items/:id` | 저장된 검색 조건 |
 | PATCH | `/api/lost-items/:id` | 검색 조건 수정 |
+| GET | `/api/lost-items/:id/results` | 매칭 결과 (아래 참고) |
 
 ### 분실물 `/api/lost-items`
 - `POST { rawText }` → `201` 검색 조건. `rawText`는 공백 제외 5자 이상, 500자 이하
@@ -151,5 +152,22 @@ npm run collect    # 지금 바로 30일 전체 수집 (서버를 안 띄워도 
 | `location` | `orgNm`을 카카오 로컬 키워드 검색한 좌표 `{ lat, lng, placeName, address }`. `KAKAO_REST_API_KEY`가 없거나 못 찾으면 `null` |
 
 없는 관리번호는 `404`, 형식이 틀리면 `400`.
+
+### `GET /api/lost-items/:id/results`
+매칭 결과. 분실물 조건의 분류·지역 코드와 날짜(분실 하루 전 ~ 분실 후 14일)로 경찰청 목록을 훑으며 점수를 매긴다. 40점 미만 제외, 점수순 최대 100건, 상위 10건은 상세 API의 습득장소로 지역 점수 보정. 10분 캐시.
+
+응답: `{ condition: SearchCondition, items: MatchResult[] }` (`MatchResult`는 경찰청 목록 필드 + `score`, `tags`, `isNew`). 없는 분실물은 `404`.
+
+점수 (`src/rules/score.js`, 순수 함수 · 신규 후보 판정에서 재사용)
+| 조건 | 가중치 | 점수 |
+|---|---|---|
+| 분류 | 35 | 소분류까지 일치 100 / 대분류만 55 / 불일치 0 (조건이 대분류만이면 대분류 일치 100) |
+| 색상 | 20 | 같은 계열 100 / 비슷한 계열 60 / 불일치 10 / 습득물 색 "기타"면 정보 없음 |
+| 날짜 | 25 | 분실 기간 안 100, 다음 날 95, 이후 하루마다 -8 / 분실 하루 전 50, 그 이전 10 |
+| 지역 | 20 | 보관장소·습득장소에 지역 키워드(예: 강남) 100 / 같은 시·도 60 / 그 외 10 |
+
+정보가 없는 조건(`score: null`)은 빼고 나머지 가중치로 평균을 낸다.
+
+> ⚠️ 분실물 조건 저장소(`POST /api/lost-items`)가 아직 없어 `src/mocks/lostItems.js`의 데모 조건(`demo`, `demo-wallet`, `demo-empty`)으로 동작한다.
 
 에러 응답 형식: `{ "error": { "message": "..." } }`

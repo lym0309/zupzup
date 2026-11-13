@@ -9,21 +9,25 @@ import { errorHandler } from './middlewares/errorHandler.js'
 import { notFound } from './middlewares/notFound.js'
 import { createApiRouter } from './routes/index.js'
 import { createFoundItemsService } from './services/foundItems.js'
+import { createMockLostItems } from './mocks/lostItems.js'
 import { createHistoryService } from './services/history.js'
 import { createKakaoLocal } from './services/kakaoLocal.js'
 import { createLookupCodesService } from './services/lookupCodes.js'
 import { createLostItemsService } from './services/lostItems.js'
+import { createMatchResultsService } from './services/matchResults.js'
 import { createPoliceApi } from './services/policeApi.js'
 
 const defaultDeps = () => {
+  const policeApi = createPoliceApi()
   const lostItemsRepo = createLostItemsRepo(pool)
   const lookupCodes = createLookupCodesService({ repo: createLookupCodesRepo(pool), lostItemsRepo })
   return {
     pingDb,
-    foundItems: createFoundItemsService({ policeApi: createPoliceApi(), kakaoLocal: createKakaoLocal() }),
+    foundItems: createFoundItemsService({ policeApi, kakaoLocal: createKakaoLocal() }),
     lostItems: createLostItemsService({ repo: lostItemsRepo }),
     lookupCodes,
     history: createHistoryService({ repo: createHistoryRepo(pool), lookupCodes }),
+    matchResults: createMatchResultsService({ policeApi, lostItems: createMockLostItems() }),
   }
 }
 

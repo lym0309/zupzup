@@ -32,6 +32,22 @@ export const COLOR_FAMILIES = [
   '초록', '청록', '파랑', '남색', '보라', '분홍', '기타',
 ]
 
+// 경찰청 색상명("블랙(검정)") 또는 계열 이름("검정") → 계열. 사용자 조건은 계열 이름으로 들어온다
 export function colorFamily(clrNm) {
+  if (COLOR_FAMILIES.includes(clrNm)) return clrNm
   return FAMILY_BY_BASE[colorBaseName(clrNm)] ?? '기타'
 }
+
+// 비슷한 계열 (매칭 점수 "비슷한 계열 60"). 문구 규칙표 예: 검정↔남색, 흰색↔아이보리
+// 서로 대칭이 되도록 한쪽만 적고 아래에서 양방향으로 만든다
+const SIMILAR_PAIRS = [
+  ['검정', '남색'], ['검정', '회색'],
+  ['흰색', '회색'], ['흰색', '은색'], ['회색', '은색'],
+  ['갈색', '주황'],
+  ['빨강', '분홍'], ['빨강', '주황'], ['주황', '노랑'],
+  ['초록', '청록'], ['청록', '파랑'], ['파랑', '남색'],
+  ['남색', '보라'], ['보라', '분홍'],
+]
+const SIMILAR = new Set(SIMILAR_PAIRS.flatMap(([a, b]) => [`${a}|${b}`, `${b}|${a}`]))
+
+export const isSimilarColor = (a, b) => SIMILAR.has(`${a}|${b}`)
