@@ -1,0 +1,251 @@
+/* 검색 기록 · 조회 코드 (시안 5a) */
+.history {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  width: calc(860px + 80px); /* 본문 860px + 좌우 패딩 */
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 56px 40px 80px;
+}
+
+.history__title {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* 조회 코드 카드 */
+.history__code-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px 24px;
+  border: 1px solid var(--color-border-panel);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.history__code-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.history__code-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.history__code-desc {
+  font-size: 13.5px;
+  color: var(--color-text-sub);
+}
+
+.history__code-row {
+  display: flex;
+  gap: 10px;
+}
+
+.history__code-input {
+  flex: 1;
+  min-width: 0;
+  padding: 11px 16px;
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-button);
+  background: var(--color-surface);
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.history__code-input::placeholder {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.history__code-input:focus {
+  border-color: var(--color-primary);
+}
+
+.history__code-input.is-error {
+  border-color: var(--color-error);
+}
+
+.history__code-row .btn {
+  flex: none;
+  min-width: 88px;
+}
+
+.history__code-error {
+  margin-top: -4px;
+  font-size: 13px;
+  color: var(--color-error);
+}
+
+/* 기록 목록 */
+.history__section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.history__section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.history__count {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-strong-gray);
+}
+
+.history__clear {
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 13.5px;
+  color: var(--color-text-sub);
+  cursor: pointer;
+}
+
+.history__clear:hover:not(:disabled) {
+  color: var(--color-error);
+}
+
+.history__list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.history-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 18px 22px;
+  border: 1px solid var(--color-border-card);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  transition: border-color 0.15s;
+}
+
+.history-card:hover,
+.history-card:focus-within {
+  border-color: var(--color-primary);
+}
+
+.history-card__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.history-card__link {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--color-text);
+  outline: none;
+}
+
+/* 카드 전체를 클릭 영역으로 */
+.history-card__link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.history-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.history-card__chip {
+  padding: 3px 10px;
+  border: 1px solid var(--color-border-chip);
+  border-radius: var(--radius-pill);
+  font-size: 12.5px;
+  color: var(--color-text-strong-gray);
+}
+
+.history-card__meta {
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+}
+
+.history-card__side {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.history-card__total {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+/* 카드 링크(::after) 위에 올라와야 따로 눌린다 */
+.history-card__new {
+  position: relative;
+  z-index: 1;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  transition: background-color 0.15s;
+}
+
+.history-card__new:hover {
+  background: var(--color-primary-dark);
+}
+
+.history-card__no-new {
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+}
+
+/* 빈 상태 · 불러오는 중 · 오류 */
+.history__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 40px 24px;
+  border: 1px dashed var(--color-border-dashed);
+  border-radius: var(--radius-card);
+  font-size: 15px;
+  color: var(--color-text-sub);
+}
+
+.history__loading {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.history__error {
+  font-size: 14px;
+  color: var(--color-error);
+}
+
+.history__note {
+  margin-top: -8px;
+}
