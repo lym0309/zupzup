@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { clearHistory, getHistory, lookupCode } from '../api/history.js'
 import './HistoryPage.css'
 import {
@@ -15,13 +15,14 @@ import {
 // 검색 기록 · 조회 코드로 열기 (시안 5a). ?code= 로 들어오면 조회 코드 입력칸에 포커스
 export default function HistoryPage() {
   const [searchParams] = useSearchParams()
+  const location = useLocation()
   const focusCode = searchParams.has('code')
 
   return (
     <div className="history">
       <h1 className="history__title">검색 기록</h1>
-      {/* key: 사이드바에서 "조회 코드로 열기"를 다시 눌러도 포커스되도록 */}
-      <LookupCodeCard key={String(focusCode)} autoFocus={focusCode} initialCode={searchParams.get('code') ?? ''} />
+      {/* key: 이동할 때마다 새로 그려서, 같은 주소(?code=)에서 사이드바를 다시 눌러도 포커스되도록 */}
+      <LookupCodeCard key={location.key} autoFocus={focusCode} initialCode={searchParams.get('code') ?? ''} />
       <HistoryList />
       <p className="disclaimer history__note">
         검색 기록은 이 기기에만 저장돼요. 다른 기기에서 보려면 조회 코드를 저장해 두세요.
