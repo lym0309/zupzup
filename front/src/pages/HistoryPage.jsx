@@ -169,7 +169,7 @@ function HistoryList() {
   )
 }
 
-/** @param {{ entry: import('../mocks/history.js').HistoryEntry }} props */
+/** @param {{ entry: import('../api/history.js').HistoryEntry }} props */
 function HistoryCard({ entry }) {
   const { condition, lookupCode: code, searchedAt, resultCount, newCount } = entry
   const resultsPath = `/results/${condition.lostItemId}`
@@ -189,12 +189,14 @@ function HistoryCard({ entry }) {
           ))}
         </div>
         <p className="history-card__meta">
-          {formatSearchedAt(searchedAt)} · 조회 코드 {code}
+          {formatSearchedAt(searchedAt)}
+          {code && ` · 조회 코드 ${code}`}
         </p>
       </div>
 
       <div className="history-card__side">
-        <p className="history-card__total">{resultCount}건</p>
+        {/* 결과 수는 매칭 결과 API 연결 전까지 null → 숨김 */}
+        {resultCount !== null && <p className="history-card__total">{resultCount}건</p>}
         {newCount > 0 ? (
           <Link to={`${resultsPath}?new=1`} className="history-card__new">
             새 습득물 {newCount}건

@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import { createFoundItemsRouter } from './foundItems.js'
 import { createHealthRouter } from './health.js'
+import { createHistoryRouter } from './history.js'
+import { createLookupCodesRouter } from './lookupCodes.js'
 import { createLostItemsRouter } from './lostItems.js'
 
 // /api 하위 라우터 모음
@@ -10,5 +12,7 @@ export function createApiRouter(deps) {
   router.use('/health', createHealthRouter(deps))
   router.use('/found-items', createFoundItemsRouter(deps))
   router.use('/lost-items', createLostItemsRouter(deps))
+  router.use('/lookup-codes', createLookupCodesRouter(deps))
+  router.use('/history', createHistoryRouter(deps))
   return router
 }
