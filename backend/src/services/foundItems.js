@@ -10,10 +10,9 @@ import {
   totalPages,
 } from '../rules/foundItemList.js'
 import { SOURCE_NAMES } from './policeApi.js'
+import { scanPages } from './scan.js'
 
 export const PAGE_SIZE = 8
-const SCAN_ROWS = 5000 // 전체 훑기 때 한 번에 받는 건수 (API 호출 수를 줄이기 위해 크게)
-// 5,000건 응답 하나가 파싱 후 약 10MB라, 메모리(192MB)를 위해 출처별로 한 페이지씩만 받는다
 // 넘겨 볼 수 있는 최대 건수 (= 625페이지). 건수(totalCount)는 실제 값을 그대로 알려준다
 export const MAX_BROWSE_ROWS = 5000
 export const MAX_PAGE = MAX_BROWSE_ROWS / PAGE_SIZE
@@ -49,17 +48,14 @@ export function createFoundItemsService({ policeApi, kakaoLocal = null, now = ()
       kept = sortByRegistration(kept).slice(0, MAX_BROWSE_ROWS)
     }
 
-    let pages = 1
-    for (let pageNo = 1; pageNo <= pages; pageNo++) {
-      const res = await policeApi.listFoundItems(source, { ...base, pageNo, numOfRows: SCAN_ROWS })
-      pages = Math.ceil(res.totalCount / SCAN_ROWS)
-      for (const it of res.items) {
+    await scanPages(policeApi, source, base, (items) => {
+      for (const it of items) {
         if (!matchesFilter(it, filter)) continue
         count++
         kept.push(it)
       }
       if (kept.length > MAX_BROWSE_ROWS * 2) trim() // 메모리를 위해 중간중간 줄인다
-    }
+    })
     trim()
     return { totalCount: count, items: kept }
   }
