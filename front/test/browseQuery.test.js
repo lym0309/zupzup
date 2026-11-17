@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { pageList, readBrowseQuery, toSearchParams } from '../src/pages/browse/browseQuery.js'
+import { MAX_PAGE, pageList, readBrowseQuery, toSearchParams } from '../src/pages/browse/browseQuery.js'
 
 const read = (qs) => readBrowseQuery(new URLSearchParams(qs))
 
@@ -20,6 +20,12 @@ describe('readBrowseQuery', () => {
     })
     expect(read('page=abc').page).toBe(1)
     expect(read(`q=${'x'.repeat(60)}`).q).toHaveLength(50)
+  })
+
+  it('최대 페이지를 넘으면 최대 페이지로 (서버 400 대신)', () => {
+    expect(read('page=1000').page).toBe(MAX_PAGE)
+    expect(read(`page=${MAX_PAGE}`).page).toBe(MAX_PAGE)
+    expect(MAX_PAGE).toBe(625)
   })
 })
 

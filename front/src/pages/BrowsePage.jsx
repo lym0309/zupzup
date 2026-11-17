@@ -31,6 +31,16 @@ export default function BrowsePage() {
   const data = result.data
   const isSlowQuery = Boolean(query.q || query.clr)
 
+  // 실제 페이지 수보다 큰 페이지로 들어오면 (예: 주소를 직접 고침) 마지막 페이지로 옮긴다.
+  // replace라서 뒤로 가기 기록에는 남지 않는다
+  const lastPage = !loading && data ? data.totalPages : null
+  useEffect(() => {
+    const current = readBrowseQuery(new URLSearchParams(queryKey))
+    if (lastPage && current.page > lastPage) {
+      setSearchParams(toSearchParams({ ...current, page: lastPage }), { replace: true })
+    }
+  }, [lastPage, queryKey, setSearchParams])
+
   const go = (next) => {
     setSearchParams(toSearchParams(next))
     window.scrollTo({ top: 0 })
