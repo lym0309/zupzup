@@ -1,4 +1,5 @@
 import { categoryCode, regionCode } from '../rules/foundItemCodes.js'
+import { colorFromUniq, memoFromUniq } from '../rules/foundItemDetail.js'
 import {
   isNewItem,
   matchesFilter,
@@ -18,6 +19,7 @@ export const MAX_BROWSE_ROWS = 5000
 export const MAX_PAGE = MAX_BROWSE_ROWS / PAGE_SIZE
 const CACHE_TTL_MS = 10 * 60 * 1000
 const CACHE_MAX = 10 // 항목 하나가 최대 약 4MB (5,000건)
+const DETAIL_CACHE_MAX = 300
 
 // 전체 습득물 조회 (GET /api/found-items). 최신 접수순
 // - 검색어·색상이 없으면: 출처별 앞부분 (page × 8건)만 받아 합친다 → 호출 2번
@@ -25,7 +27,7 @@ const CACHE_MAX = 10 // 항목 하나가 최대 약 4MB (5,000건)
 //      습득물을 DB에 수집하는 방식(#16)으로 바꾸면서 해결 예정
 // - 검색어·색상이 있으면: API가 지원하지 않아 기간 내 전체를 훑으며 서버에서 거른다 → 순서 정확
 //   메모리 제한(컨테이너 192MB) 때문에 페이지 단위로 거르고, 걸러진 결과만 캐시한다.
-export function createFoundItemsService({ policeApi, now = () => new Date() }) {
+export function createFoundItemsService({ policeApi, kakaoLocal = null, now = () => new Date() }) {
   const cache = new Map() // key → { expiresAt, promise }
 
   function cached(key, load) {
@@ -118,5 +120,36 @@ export function createFoundItemsService({ policeApi, now = () => new Date() }) {
     }
   }
 
-  return { browse }
+  // 상세는 응답이 작아(1건 약 1KB) 목록 캐시와 따로 더 많이 둔다
+  const detailCache = new Map()
+  function cachedDetail(key, load) {
+    const hit = detailCache.get(key)
+    if (hit && hit.expiresAt > Date.now()) return hit.promise
+    const promise = load()
+    detailCache.set(key, { expiresAt: Date.now() + CACHE_TTL_MS, promise })
+    promise.catch(() => detailCache.delete(key))
+    if (detailCache.size > DETAIL_CACHE_MAX) detailCache.delete(detailCache.keys().next().value)
+    return promise
+  }
+
+  /**
+   * 습득물 상세 (GET /api/found-items/:atcId/:fdSn). 없으면 null
+   * - clrNm: 상세 API에 없어 안내문(uniq)에서 꺼낸다
+   * - memo: uniq의 "특이사항 :" 뒤 (없으면 '')
+   * - location: 보관기관(orgNm) 좌표. 카카오 키가 없거나 못 찾으면 null
+   */
+  async function detail(atcId, fdSn) {
+    const raw = await cachedDetail(`${atcId}|${fdSn}`, () => policeApi.getFoundItemDetail(atcId, fdSn))
+    if (!raw) return null
+    const { uniq, ...rest } = raw
+    return {
+      ...rest,
+      clrNm: colorFromUniq(uniq),
+      memo: memoFromUniq(uniq),
+      isNew: isNewItem(raw.fdYmd, todayKst(now())),
+      location: kakaoLocal ? await kakaoLocal.searchPlace(raw.orgNm) : null,
+    }
+  }
+
+  return { browse, detail }
 }
