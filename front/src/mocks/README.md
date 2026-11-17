@@ -4,6 +4,4 @@
 
 | 파일 | 대신하는 API | 담당 | 쓰는 곳 |
 |---|---|---|---|
-| `lookupCodes.js` | `POST /api/lookup-codes` | @kwonminsooo | 상세 4a "조회 코드 저장" |
-| `matchResults.js` | `GET /api/lost-items/:id/results` | @kim-ch2 | 상세 4a 매칭 설명 카드 |
 | `newCandidates.js` | `GET /api/lost-items/:id/new-candidates` | @kwonminsooo | 신규 습득물 6a/6b (`/results/mock-empty?new=1` 이면 새 습득물 0건 6b) |

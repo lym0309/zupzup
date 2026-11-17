@@ -1,0 +1,255 @@
+/* 매칭 결과 (시안 1a / 1b) */
+.results {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.results__header {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 28px 40px 22px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.results__title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+
+.results__title {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.results__subtitle {
+  font-size: 14px;
+  color: var(--color-text-sub);
+}
+
+.results__chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.results__chips .chip {
+  padding: 7px 13px;
+}
+
+.results__edit {
+  margin-left: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.results__body {
+  display: grid;
+  grid-template-columns: 60fr 40fr;
+  gap: 28px;
+  padding: 24px 40px;
+}
+
+.results__list,
+.results__side,
+.results__new {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.results__new {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.results__section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+}
+
+.results__disclaimer {
+  margin-top: 8px;
+}
+
+/* 결과 카드 */
+.result-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 132px;
+  padding: 16px 18px;
+  border: 1.5px solid var(--color-border-card);
+  border-radius: var(--radius-card-sm);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  color: var(--color-text);
+  text-align: left;
+  transition: border-color 0.15s;
+}
+
+.result-card:hover {
+  border-color: var(--color-primary-bg-tile);
+}
+
+.result-card.is-selected {
+  border-color: var(--color-primary);
+}
+
+.result-card__info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.result-card__name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.result-card__name {
+  overflow: hidden;
+  font-size: 17px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.result-card__name-row .badge-new {
+  flex: none;
+}
+
+.result-card__meta {
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--color-text-sub);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.result-card__meta--muted {
+  color: var(--color-text-muted);
+}
+
+.result-card__tags {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+/* 시안: 결과 카드 태그는 radius 6px (공용 .match-tag는 pill) */
+.result-card__tags .match-tag {
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+/* 우측 정보 패널 */
+.results-info {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 22px;
+  border-color: var(--color-border);
+}
+
+.results-info__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.results-info__place {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.results-info__score {
+  flex: none;
+  font-size: 13px;
+  color: var(--color-text-sub);
+}
+
+.results-info__rows {
+  display: grid;
+  row-gap: 8px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.results-info__rows > div {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+}
+
+.results-info__rows dt {
+  color: var(--color-text-muted);
+}
+
+.results-info__rows dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.results-info__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.results-info__actions .btn {
+  flex: 1;
+  padding: 12px;
+  font-size: 14px;
+}
+
+/* 결과 없음 (1b) */
+.results-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 440px;
+  padding: 40px;
+  text-align: center;
+}
+
+.results-empty__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--color-primary-bg);
+  font-size: 28px;
+}
+
+.results-empty__title {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.results-empty__copy {
+  max-width: 420px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--color-text-sub);
+}
+
+.results-empty__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}

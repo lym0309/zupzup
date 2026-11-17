@@ -1,5 +1,4 @@
 // 신규 습득물 확인 화면(6a/6b) 규칙
-import { isHidden } from '../../shared/hiddenItems.js'
 
 const toUtc = (ymd) => Date.UTC(+ymd.slice(0, 4), +ymd.slice(5, 7) - 1, +ymd.slice(8, 10))
 
@@ -28,13 +27,14 @@ export function headerSub({ lastViewedAt, lookupCode }) {
 export const itemId = ({ atcId, fdSn }) => `${atcId}-${fdSn}`
 
 /**
- * 숨긴 습득물을 빼고 나눈다. 숨긴 건 수는 신규·이전 모두 센다
- * @param {{ newItems: object[], previousItems: object[] }} data
- * @param {Set<string>} hidden  hiddenItems.getHiddenItems() 결과
+ * 숨긴 습득물을 신규·이전에서 빼고 따로 모은다.
+ * "내 물건이 아니에요"로 숨긴 목록은 서버(hidden_items)에 있고, new-candidates 응답의 hiddenItems로 온다.
+ * 서버가 이미 뺐어도 한 번 더 걸러서 같은 습득물이 두 번 보이지 않게 한다.
+ * @param {{ newItems: object[], previousItems: object[], hiddenItems?: object[] }} data
  */
-export function splitHidden({ newItems, previousItems }, hidden) {
-  const visible = (items) => items.filter((item) => !isHidden(hidden, item))
-  const hiddenItems = [...newItems, ...previousItems].filter((item) => isHidden(hidden, item))
+export function splitHidden({ newItems, previousItems, hiddenItems = [] }) {
+  const hiddenIds = new Set(hiddenItems.map(itemId))
+  const visible = (items) => items.filter((item) => !hiddenIds.has(itemId(item)))
   return { newItems: visible(newItems), previousItems: visible(previousItems), hiddenItems }
 }
 

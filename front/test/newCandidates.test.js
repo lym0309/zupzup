@@ -30,9 +30,13 @@ describe('headerSub', () => {
 })
 
 describe('splitHidden', () => {
-  it('숨긴 습득물은 신규·이전에서 빼고 따로 모은다', () => {
-    const data = { newItems: [item('A'), item('B')], previousItems: [item('C'), item('D')] }
-    const result = splitHidden(data, new Set(['B-1', 'D-1']))
+  it('숨긴 습득물(서버 응답 hiddenItems)은 신규·이전에서 빼고 따로 모은다', () => {
+    const data = {
+      newItems: [item('A'), item('B')],
+      previousItems: [item('C'), item('D')],
+      hiddenItems: [item('B'), item('D')],
+    }
+    const result = splitHidden(data)
     expect(result.newItems.map(itemId)).toEqual(['A-1'])
     expect(result.previousItems.map(itemId)).toEqual(['C-1'])
     expect(result.hiddenItems.map(itemId)).toEqual(['B-1', 'D-1'])

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { getNewCandidates, markSeen } from '../../api/newCandidates.js'
-import { getHiddenItems } from '../../shared/hiddenItems.js'
 import KakaoMap from '../../shared/KakaoMap.jsx'
 import { TAG_LABELS, TAG_ORDER, TAG_SYMBOL, headline, tagStatus } from '../../shared/matchCopy.js'
 import ScoreRing from '../../shared/ScoreRing.jsx'
@@ -59,9 +58,8 @@ function BackLink() {
 
 function Loaded({ lostItemId, data }) {
   const today = todayKst()
-  // "내 물건이 아니에요"로 숨긴 습득물 (지금은 이 기기에만 저장, #24에서 서버 저장으로)
-  const [hidden] = useState(() => getHiddenItems(lostItemId))
-  const { newItems, previousItems, hiddenItems } = useMemo(() => splitHidden(data, hidden), [data, hidden])
+  // "내 물건이 아니에요"로 숨긴 습득물은 서버가 응답의 hiddenItems로 따로 준다
+  const { newItems, previousItems, hiddenItems } = useMemo(() => splitHidden(data), [data])
   const isEmpty = newItems.length === 0
 
   const [showHidden, setShowHidden] = useState(false)

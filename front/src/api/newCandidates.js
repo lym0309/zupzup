@@ -22,7 +22,8 @@ const USE_MOCK = import.meta.env.DEV
  *   lookupCode: string | null,
  *   lastViewedAt: string | null,
  *   newItems: CandidateItem[],
- *   previousItems: CandidateItem[] }>}
+ *   previousItems: CandidateItem[],
+ *   hiddenItems?: CandidateItem[] }>}  hiddenItems: "내 물건이 아니에요"로 숨긴 습득물 (newItems·previousItems에서는 빠짐)
  */
 export function getNewCandidates(lostItemId, { signal } = {}) {
   if (USE_MOCK) return mockGetNewCandidates(lostItemId)
