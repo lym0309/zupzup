@@ -180,3 +180,26 @@ describe('GET /api/lookup-codes/:code', () => {
     expect(missing.body.error.message).toBe('이 조회 코드로 저장된 검색이 없어요.')
   })
 })
+
+describe('조회 코드 무작위 대입 방지', () => {
+  it('IP당 제한 횟수를 넘으면 429 + Retry-After', async () => {
+    const repos = memoryRepos()
+    const lookupCodes = createLookupCodesService({ repo: repos.lookupCodesRepo, lostItemsRepo: repos.lostItemsRepo })
+    const app = createApp({ lookupCodes, lookupLimit: { max: 3, windowMs: 60_000 } })
+
+    for (let i = 0; i < 3; i++) expect((await request(app).get('/api/lookup-codes/FND-ZZZZ-ZZ')).status).toBe(404)
+    const blocked = await request(app).get('/api/lookup-codes/FND-ZZZZ-ZZ')
+    expect(blocked.status).toBe(429)
+    expect(blocked.headers['retry-after']).toBe('60')
+    expect(blocked.body.error.message).toContain('너무 많이')
+  })
+
+  it('preflight 결과를 10분 캐시하도록 알려준다', async () => {
+    const res = await request(setup().app)
+      .options('/api/history')
+      .set('Origin', 'http://localhost:5173')
+      .set('Access-Control-Request-Method', 'GET')
+      .set('Access-Control-Request-Headers', 'x-device-id')
+    expect(res.headers['access-control-max-age']).toBe('600')
+  })
+})

@@ -34,7 +34,8 @@ export function createApp(overrides = {}) {
 
   app.disable('x-powered-by')
   app.set('trust proxy', 1) // Caddy 리버스 프록시 뒤에서 실행
-  app.use(cors({ origin: env.corsOrigins }))
+  // maxAge: X-Device-Id 같은 커스텀 헤더가 있는 요청의 preflight(OPTIONS) 결과를 브라우저가 10분 캐시
+  app.use(cors({ origin: env.corsOrigins, maxAge: 600 }))
   app.use(express.json({ limit: '100kb' }))
 
   app.use('/api', createApiRouter(deps))

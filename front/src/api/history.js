@@ -1,4 +1,5 @@
-// 검색 기록 · 조회 코드 API (권민수). 기기는 client.js가 X-Device-Id 헤더로 알려준다
+// 검색 기록 · 조회 코드 API (권민수). 검색 기록은 X-Device-Id 헤더로 기기를 알려준다
+import { deviceHeaders } from '../shared/deviceId.js'
 import { ApiError, api } from './client.js'
 
 /**
@@ -13,12 +14,12 @@ import { ApiError, api } from './client.js'
 
 /** 이 기기의 검색 기록 + 결과 수 + 새 후보 수 → { items: HistoryEntry[] } */
 export function getHistory() {
-  return api.get('/api/history')
+  return api.get('/api/history', { headers: deviceHeaders() })
 }
 
 /** 이 기기의 검색 기록 전체 삭제 */
 export function clearHistory() {
-  return api.delete('/api/history')
+  return api.delete('/api/history', { headers: deviceHeaders() })
 }
 
 /**

@@ -2,8 +2,6 @@
 // - 개발: VITE_API_URL을 비워두면 Vite dev 서버 프록시(/api → localhost:3000)를 사용
 // - 배포(Vercel): VITE_API_URL=https://api.<도메인> 으로 설정
 // ⚠️ VITE_ 로 시작하는 값은 빌드 결과에 그대로 노출되므로 API 키를 넣지 말 것
-import { getDeviceId } from '../shared/deviceId.js'
-
 const BASE_URL = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
 
 export class ApiError extends Error {
@@ -23,7 +21,6 @@ export async function request(path, { method = 'GET', body, headers, ...rest } =
     res = await fetch(`${BASE_URL}${path}`, {
       method,
       headers: {
-        'X-Device-Id': getDeviceId(), // 검색 기록을 기기 단위로 나눈다
         ...(body !== undefined && { 'Content-Type': 'application/json' }),
         ...headers,
       },
