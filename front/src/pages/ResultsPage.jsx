@@ -3,20 +3,17 @@ import { Link, useParams, useSearchParams } from 'react-router'
 import { getMatchResults } from '../api/matchResults.js'
 import Placeholder from '../components/Placeholder.jsx'
 import MatchResultsView from './results/MatchResultsView.jsx'
+import NewCandidatesView from './results/NewCandidatesView.jsx'
 
-// TODO(@kwonminsooo): ?new=1 이면 신규 습득물 확인 (시안 6a / 6b) — GET /api/lost-items/:id/new-candidates
-//   MatchResultsView에 newCandidates를 넘기면 "지난 확인 이후 새로 들어온 습득물" 구역이 먼저 보인다.
+// /results/:lostItemId — 매칭 결과 (시안 1a / 1b, @kim-ch2)
+// ?new=1 이면 신규 습득물 확인 (시안 6a / 6b, @kwonminsooo) — GET /api/lost-items/:id/new-candidates
 export default function ResultsPage() {
   const { lostItemId } = useParams()
   const [searchParams] = useSearchParams()
   const isNewView = searchParams.get('new') === '1'
 
   return isNewView ? (
-    <Placeholder screen="6a / 6b" title="새로 들어온 습득물" owner="@kwonminsooo">
-      <p>
-        lostItemId: <code>{lostItemId}</code>
-      </p>
-    </Placeholder>
+    <NewCandidatesView lostItemId={lostItemId} />
   ) : (
     <MatchResults lostItemId={lostItemId} />
   )

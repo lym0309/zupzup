@@ -1,4 +1,4 @@
-import { api, request } from './client.js'
+import { api } from './client.js'
 
 const lostItemPath = (lostItemId) => `/api/lost-items/${encodeURIComponent(lostItemId)}`
 const hiddenPath = (lostItemId, atcId, fdSn) =>
@@ -18,7 +18,7 @@ export function getMatchResults(lostItemId, { signal } = {}) {
  * 조회 코드로 다른 기기에서 열어도 숨겨진 채로 보이고, 신규 후보에서도 빠진다.
  */
 export function hideMatch(lostItemId, atcId, fdSn) {
-  return request(hiddenPath(lostItemId, atcId, fdSn), { method: 'PUT' })
+  return api.put(hiddenPath(lostItemId, atcId, fdSn))
 }
 
 /** 숨기기 취소 */

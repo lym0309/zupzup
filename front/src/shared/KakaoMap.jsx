@@ -9,8 +9,10 @@ import './KakaoMap.css'
  * 사용 예:
  *   <KakaoMap height={300} label={orgNm} pins={[{ id, lat, lng, selected: true }]} />
  *
+ * - tone: 신규 습득물(6a) 화면용 핀 구분. 'new' 20px 주색 / 'previous' 16px 회색 (선택하면 28px 주색)
  * @param {{ height: number, label?: string,
- *           pins: { id: string, lat: number, lng: number, selected?: boolean, title?: string }[],
+ *           pins: { id: string, lat: number, lng: number, selected?: boolean, title?: string,
+ *                   tone?: 'new' | 'previous' }[],
  *           onSelect?: (id: string) => void }} props
  */
 export default function KakaoMap({ height, label = '', pins = [], onSelect }) {
@@ -54,7 +56,7 @@ export default function KakaoMap({ height, label = '', pins = [], onSelect }) {
     overlaysRef.current = located.map((p) => {
       const el = document.createElement('button')
       el.type = 'button'
-      el.className = `kakao-map__pin${p.selected ? ' is-selected' : ''}`
+      el.className = `kakao-map__pin${p.tone ? ` kakao-map__pin--${p.tone}` : ''}${p.selected ? ' is-selected' : ''}`
       el.title = p.title ?? ''
       el.setAttribute('aria-label', p.title ? `${p.title} 위치` : '보관장소 위치')
       if (onSelect) el.addEventListener('click', () => onSelect(p.id))
