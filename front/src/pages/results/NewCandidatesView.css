@@ -1,0 +1,380 @@
+/* 신규 습득물 확인 (시안 6a / 6b). 매칭 결과(1a)와 같은 60/40 구조 */
+.newc {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 40px 40px 72px;
+}
+
+.newc__message {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.newc__message--error {
+  color: var(--color-error);
+}
+
+/* 헤더 */
+.newc__header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.newc__back {
+  align-self: flex-start;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.newc__title {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.newc__sub {
+  font-size: 14px;
+  color: var(--color-text-sub);
+}
+
+.newc__conditions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.newc__edit {
+  margin-left: 4px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+/* 본문 60 / 40 */
+.newc__body {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.newc__left {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.newc__right {
+  position: sticky;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* 신규 후보 카드 (1a 카드와 같은 132px) */
+.newc__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.newc-card {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+  min-height: 132px;
+  padding: 18px 20px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.newc-card:hover {
+  border-color: var(--color-primary);
+}
+
+.newc-card.is-selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg-soft);
+}
+
+.newc-card__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.newc-card__badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.newc-card__received {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.newc-card__name {
+  font-size: 17px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.newc-card__meta {
+  font-size: 13px;
+  color: var(--color-text-sub);
+}
+
+.newc__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 2px;
+}
+
+/* 이전 결과 */
+.newc__previous {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.newc__previous-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-divider);
+}
+
+.newc__previous-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-strong-gray);
+}
+
+.newc__toggle,
+.newc__hidden-toggle {
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.newc__rows {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  list-style: none;
+}
+
+.newc__rows li + li {
+  border-top: 1px solid var(--color-divider);
+}
+
+.newc-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 12px 18px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.newc-row:hover {
+  background: var(--color-bg);
+}
+
+.newc-row.is-selected {
+  background: var(--color-primary-bg-soft);
+}
+
+.newc-row.is-hidden .newc-row__name,
+.newc-row.is-hidden .newc-row__score {
+  color: var(--color-text-muted);
+}
+
+.newc-row__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.newc-row__name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.newc-row__hidden-label {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--color-bg-sidebar);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.newc-row__meta {
+  font-size: 12.5px;
+  color: var(--color-text-sub);
+}
+
+.newc-row__score {
+  flex: none;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.newc__hidden {
+  font-size: 13px;
+  color: var(--color-text-sub);
+}
+
+/* 6b 빈 상태 */
+.newc__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 36px 32px;
+  text-align: center;
+}
+
+.newc__empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 6px;
+  border-radius: 50%;
+  background: var(--color-primary-bg);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.newc__empty-title {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.newc__empty-desc {
+  max-width: 420px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text-sub);
+}
+
+/* 지도 + 범례 */
+.newc__map {
+  position: relative;
+}
+
+.newc__legend {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 3;
+  display: flex;
+  gap: 12px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-popover);
+  font-size: 12px;
+  color: var(--color-text-strong-gray);
+}
+
+.newc__legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.newc__legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.newc__legend-dot--new {
+  background: var(--color-primary);
+}
+
+.newc__legend-dot--previous {
+  background: #c3cbcb; /* 지도 이전 결과 핀과 같은 색 */
+}
+
+/* 선택한 습득물 정보 패널 */
+.newc-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+}
+
+.newc-info__head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.newc-info__title {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.newc-info__name {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.newc-info__meta {
+  font-size: 12.5px;
+  color: var(--color-text-sub);
+}
+
+.newc-info__headline {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.newc-info__detail {
+  align-self: stretch;
+}
