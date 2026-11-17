@@ -36,8 +36,9 @@ export default function ItemDetailPage() {
 
   const loading = result.key !== key
   const item = loading ? null : result.data
-  // TODO(@kim-ch2): 매칭 결과 API(GET /api/lost-items/:id/results)가 생기면 mock 대신 사용
-  const matchInfo = item && lostItemId ? mockMatchFor(lostItemId, item) : null
+  // TODO(@kim-ch2): 매칭 결과 API(GET /api/lost-items/:id/results)가 생기면 mock 대신 사용 (#25)
+  // mock 점수는 개발 환경에서만. 배포 빌드에서는 매칭 설명 카드를 숨긴다 (가짜 점수가 보이지 않게)
+  const matchInfo = import.meta.env.DEV && item && lostItemId ? mockMatchFor(lostItemId, item) : null
 
   const back = lostItemId
     ? { to: `/results/${encodeURIComponent(lostItemId)}`, label: `← 매칭 결과${matchInfo ? ` ${matchInfo.total}건` : ''}` }
