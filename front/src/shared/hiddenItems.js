@@ -1,6 +1,10 @@
 /**
  * "내 물건이 아니에요"로 숨긴 습득물 (분실물별, 이 기기 브라우저에만 저장)
  * 매칭 결과(1a)·신규 습득물(6a)에서 이 목록을 빼고 보여준다.
+ *
+ * TODO(@kim-ch2): 서버 저장으로 바꾸기 (#36 리뷰). 기기에만 두면 서버의 새 후보 수에 숨긴 것도 세지고,
+ *   조회 코드로 다른 기기에서 열면 다시 보인다.
+ *   → PUT/DELETE /api/lost-items/:id/hidden-items/:atcId/:fdSn (#24), 화면은 #25에서 교체
  */
 const keyOf = (lostItemId) => `zupzup:hidden:${lostItemId}`
 const itemKey = (atcId, fdSn) => `${atcId}-${fdSn}`
