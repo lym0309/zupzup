@@ -57,6 +57,19 @@
   background: var(--color-primary);
 }
 
+/* 신규 습득물(6a): 새 습득물 20px 주색 / 이전 결과 16px 회색 */
+.kakao-map__pin--new:not(.is-selected) {
+  width: 20px;
+  height: 20px;
+  background: var(--color-primary);
+}
+
+.kakao-map__pin--previous:not(.is-selected) {
+  width: 16px;
+  height: 16px;
+  background: #c3cbcb; /* 시안 값. 이전 결과 핀에만 씀 */
+}
+
 .kakao-map__pin--center {
   position: absolute;
   top: 52%;
