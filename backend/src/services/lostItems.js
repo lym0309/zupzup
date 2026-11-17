@@ -22,7 +22,8 @@ export const LOST_ITEM_ID = /^[A-Za-z0-9_-]{16}$/
 export const noExtractor = async () => null
 
 // API 응답 (공유 계약 SearchCondition + extracted). 모르는 값은 null
-function toResponse(item) {
+// 검색 기록(GET /api/history)도 같은 모양으로 준다
+export function toResponse(item) {
   return {
     lostItemId: item.id,
     rawText: item.rawText,

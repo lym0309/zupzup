@@ -14,7 +14,8 @@ const COLUMNS = {
 }
 const FIELDS = Object.keys(COLUMNS)
 
-function fromRow(row) {
+// 검색 기록 조회(historyRepo)에서도 lost_items 행을 같은 모양으로 바꿀 때 쓴다
+export function fromRow(row) {
   return {
     id: row.id,
     rawText: row.raw_text,
