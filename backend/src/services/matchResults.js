@@ -3,7 +3,7 @@ import { colorFamily } from '../rules/colors.js'
 import { colorFromUniq } from '../rules/foundItemDetail.js'
 import { majorCategory } from '../rules/foundItemCodes.js'
 import { addDays, isNewItem, todayKst } from '../rules/foundItemList.js'
-import { MIN_SCORE, scoreItem } from '../rules/score.js'
+import { MIN_SCORE, nameKeywords, scoreItem } from '../rules/score.js'
 import { isSearchable } from '../rules/searchCondition.js'
 
 // 습득일은 분실일 하루 전부터, 분실 후 이 기간까지 찾는다 (접수까지 며칠 걸릴 수 있음)
@@ -20,11 +20,6 @@ export function searchWindow(condition, today) {
   const lostTo = condition.dateTo || condition.dateFrom
   const end = addDays(lostTo, SEARCH_DAYS_AFTER)
   return { fromYmd: addDays(condition.dateFrom, -1), toYmd: end < today ? end : today }
-}
-
-/** 분류 없이 물품명만 있을 때 DB에서 찾을 키워드 ("무선이어폰 케이스" → ["무선이어폰", "케이스"]) */
-export function nameKeywords(itemName = '') {
-  return [...new Set((itemName ?? '').split(/\s+/).filter((w) => w.length >= 2))].slice(0, 5)
 }
 
 // 점수 높은 순, 같으면 최근 접수 먼저
@@ -74,7 +69,7 @@ export function createMatchResultsService({ lostItems, candidates, hiddenItems, 
     const rows = await candidates.find({
       ...searchWindow(condition, today),
       category,
-      nameKeywords: category ? [] : nameKeywords(condition.itemName),
+      nameKeywords: nameKeywords(condition.itemName),
     })
 
     let kept = []

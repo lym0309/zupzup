@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { colorFamily, isSimilarColor } from '../../src/rules/colors.js'
 import {
   categoryScore,
+  nameMatches,
   colorScore,
   dateScore,
   regionKeywords,
@@ -24,6 +25,29 @@ describe('categoryScore', () => {
   it('정보가 없으면 null', () => {
     expect(categoryScore('', '지갑 > 남성용 지갑')).toBeNull()
     expect(categoryScore(undefined, '지갑')).toBeNull()
+  })
+
+  it('물품명이 있으면: 대분류 + 물품명(습득물 이름·소분류) 일치 100 / 대분류만 55 / 불일치 0', () => {
+    const name = '에어팟 프로 케이스'
+    expect(categoryScore('전자기기', '전자기기 > 무선이어폰', name, '에어팟프로')).toBe(100) // 습득물 이름
+    expect(categoryScore('전자기기', '전자기기 > 무선이어폰', '무선이어폰', '이어폰')).toBe(100) // 소분류
+    expect(categoryScore('전자기기', '전자기기 > 태블릿', name, '아이패드')).toBe(55)
+    expect(categoryScore('전자기기', '지갑 > 남성용 지갑', name, '에어팟 케이스 지갑')).toBe(0)
+    expect(categoryScore('전자기기', '전자기기 > 무선이어폰', 'AirPods', 'airpods pro')).toBe(100) // 대소문자 무시
+  })
+
+  it('분류 조건 없이 물품명만 있으면: 맞으면 100, 아니면 null', () => {
+    expect(categoryScore(null, '전자기기 > 무선이어폰', '에어팟', '에어팟')).toBe(100)
+    expect(categoryScore(null, '전자기기 > 태블릿', '에어팟', '아이패드')).toBeNull()
+  })
+})
+
+describe('nameMatches', () => {
+  it('1글자 단어는 빼고, 물품명이 없으면 null', () => {
+    expect(nameMatches('폰', '휴대폰')).toBeNull()
+    expect(nameMatches('', '휴대폰')).toBeNull()
+    expect(nameMatches('검정 지갑', '반지갑')).toBe(true)
+    expect(nameMatches('에어팟', '갤럭시버즈', '전자기기 > 무선이어폰')).toBe(false)
   })
 })
 
@@ -140,6 +164,16 @@ describe('scoreItem', () => {
     const { score, tags } = scoreItem(condition, item)
     expect(tags.find((t) => t.key === 'color').score).toBeNull()
     expect(score).toBe(100)
+  })
+
+  it('물품명이 맞는 습득물이 같은 대분류의 다른 물건보다 높다 (#44 리뷰)', () => {
+    const cond = { itemName: '에어팟 프로 케이스', prdtClNm: '전자기기', clrNm: '검정', dateFrom: '2026-11-05' }
+    const base = { clrNm: '블랙(검정)', fdYmd: '2026-11-05' }
+    const earbuds = scoreItem(cond, { ...base, fdPrdtNm: '에어팟 프로', prdtClNm: '전자기기 > 무선이어폰' })
+    const tablet = scoreItem(cond, { ...base, fdPrdtNm: '아이패드', prdtClNm: '전자기기 > 태블릿' })
+    expect(earbuds.score).toBe(100)
+    expect(tablet.tags[0]).toEqual({ key: 'category', score: 55 })
+    expect(tablet.score).toBeLessThan(earbuds.score)
   })
 
   it('조건이 하나도 없으면 0', () => {

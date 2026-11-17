@@ -9,23 +9,32 @@ const escapeLike = (s) => s.replace(/[\\%_]/g, (c) => `\\${c}`)
 
 /**
  * @param {{ fromYmd: string, toYmd: string, category?: string|null, nameKeywords?: string[] }} q
- *   날짜는 YYYY-MM-DD. category가 없으면 물품명 키워드 중 하나라도 들어간 것만
+ *   날짜는 YYYY-MM-DD.
+ *   - category가 있으면 그 대분류 전부. 물품명 키워드가 들어간 것을 먼저 읽어 최대 줄 수에 걸려도 빠지지 않게
+ *   - category가 없으면 물품명 키워드 중 하나라도 들어간 것만
  */
 export function buildCandidatesQuery({ fromYmd, toYmd, category = null, nameKeywords = [] }) {
   const where = ['gone_at IS NULL', 'fd_ymd BETWEEN ? AND ?']
   const params = [fromYmd, toYmd]
+  const nameLike = `(${nameKeywords.map(() => 'fd_prdt_nm LIKE ?').join(' OR ')})`
+  const likeParams = nameKeywords.map((k) => `%${escapeLike(k)}%`)
+  const order = ['reg_ymd DESC', 'atc_id DESC']
   if (category) {
     where.push('category = ?')
     params.push(category)
+    if (nameKeywords.length > 0) {
+      order.unshift(`${nameLike} DESC`)
+      params.push(...likeParams)
+    }
   } else if (nameKeywords.length > 0) {
-    where.push(`(${nameKeywords.map(() => 'fd_prdt_nm LIKE ?').join(' OR ')})`)
-    params.push(...nameKeywords.map((k) => `%${escapeLike(k)}%`))
+    where.push(nameLike)
+    params.push(...likeParams)
   }
   const sql = `SELECT atc_id, fd_sn, fd_prdt_nm, prdt_cl_nm, clr_nm, fd_ymd, reg_ymd, dep_place, img_url,
                       region, detail_fd_place, detail_org_nm
                  FROM found_items
                 WHERE ${where.join(' AND ')}
-                ORDER BY reg_ymd DESC, atc_id DESC
+                ORDER BY ${order.join(', ')}
                 LIMIT ${MAX_CANDIDATES}`
   return { sql, params }
 }

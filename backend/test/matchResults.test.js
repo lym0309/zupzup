@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest'
 import { createApp } from '../src/app.js'
 import { hiddenKey } from '../src/db/hiddenItemsRepo.js'
 import { buildCandidatesQuery, fromRow } from '../src/db/matchCandidatesRepo.js'
-import { createMatchResultsService, nameKeywords, searchWindow } from '../src/services/matchResults.js'
+import { nameKeywords } from '../src/rules/score.js'
+import { createMatchResultsService, searchWindow } from '../src/services/matchResults.js'
 
 const NOW = () => new Date('2026-11-12T03:00:00Z') // KST 2026-11-12
 const ID = 'nyMw1pywIlWaR12w' // lostItemId 형식 (무작위 16자)
@@ -86,6 +87,13 @@ describe('matchCandidatesRepo', () => {
     expect(params).toEqual(['2026-11-07', '2026-11-12', '전자기기'])
   })
 
+  it('분류와 물품명이 다 있으면 분류로 고르고, 물품명이 들어간 것을 먼저 읽는다 (최대 줄 수에 걸려도 남게)', () => {
+    const { sql, params } = buildCandidatesQuery({ fromYmd: 'a', toYmd: 'b', category: '전자기기', nameKeywords: ['에어팟'] })
+    expect(sql).toMatch(/WHERE gone_at IS NULL AND fd_ymd BETWEEN \? AND \? AND category = \?\s+ORDER BY/)
+    expect(sql).toMatch(/ORDER BY \(fd_prdt_nm LIKE \?\) DESC, reg_ymd DESC/)
+    expect(params).toEqual(['a', 'b', '전자기기', '%에어팟%'])
+  })
+
   it('분류가 없으면 물품명 키워드 LIKE (특수문자는 글자 그대로)', () => {
     const { sql, params } = buildCandidatesQuery({ fromYmd: 'a', toYmd: 'b', nameKeywords: ['에어팟', '100%'] })
     expect(sql).toContain('(fd_prdt_nm LIKE ? OR fd_prdt_nm LIKE ?)')
@@ -131,10 +139,10 @@ describe('matchResults.results', () => {
     expect(items[0]).not.toHaveProperty('region') // 응답은 MatchResult 필드만
   })
 
-  it('조건의 분류와 습득일 범위로 후보를 찾는다. 분류가 없으면 물품명 키워드로', async () => {
+  it('조건의 분류·물품명 키워드와 습득일 범위로 후보를 찾는다', async () => {
     const deps = fakeDeps()
     await service(deps).results(ID)
-    expect(deps.calls.find[0]).toEqual({ fromYmd: '2026-11-07', toYmd: '2026-11-12', category: '전자기기', nameKeywords: [] })
+    expect(deps.calls.find[0]).toEqual({ fromYmd: '2026-11-07', toYmd: '2026-11-12', category: '전자기기', nameKeywords: ['에어팟'] })
 
     const noCategory = fakeDeps({ cond: { ...condition, prdtClNm: null, itemName: '에어팟 프로' } })
     await service(noCategory).results(ID)

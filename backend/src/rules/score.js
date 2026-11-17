@@ -2,6 +2,7 @@
 //
 // 조건별 0~100, 정보가 없으면 null(화면에서 "정보 없음", 종합 점수 계산에서 제외)
 // 종합 = 정보가 있는 조건만 가중 평균 (초안 가중치: 분류 35 · 색상 20 · 날짜 25 · 지역 20)
+// 분류 점수에는 물품명(itemName)도 반영한다: 분실물 조건의 분류는 대분류 이름만 들어오기 때문
 import { colorFamily, isSimilarColor } from './colors.js'
 import { majorCategory } from './foundItemCodes.js'
 import { daysBetween } from './foundItemList.js'
@@ -11,16 +12,39 @@ export const MIN_SCORE = 40 // 이 점수 미만은 결과에서 뺀다
 
 const subCategory = (prdtClNm = '') => (prdtClNm.includes('>') ? prdtClNm.split('>')[1].trim() : '')
 
+/** 물품명 → 비교할 단어 ("무선이어폰 케이스" → ["무선이어폰", "케이스"]). 2글자 이상, 중복 제거, 최대 5개 */
+export function nameKeywords(itemName = '') {
+  return [...new Set((itemName ?? '').split(/\s+/).filter((w) => w.length >= 2))].slice(0, 5)
+}
+
 /**
- * 분류: 소분류까지 일치 100 / 대분류만 일치 55 / 불일치 0
- * 사용자가 대분류만 고른 경우(예: "전자기기")는 대분류가 같으면 100
+ * 물품명 단어 중 하나라도 습득물 이름(fdPrdtNm)이나 소분류에 들어 있는지 (대소문자 무시)
+ * @returns {boolean|null} 물품명이 없으면 null
  */
-export function categoryScore(conditionClNm, itemClNm) {
-  if (!conditionClNm || !itemClNm) return null
+export function nameMatches(itemName, fdPrdtNm = '', itemClNm = '') {
+  const words = nameKeywords(itemName).map((w) => w.toLowerCase())
+  if (words.length === 0) return null
+  const haystack = `${fdPrdtNm ?? ''} ${subCategory(itemClNm ?? '')}`.toLowerCase()
+  return words.some((w) => haystack.includes(w))
+}
+
+/**
+ * 분류: 대분류 일치 + 물품명 일치 100 / 대분류만 일치 55 / 불일치 0
+ * 분실물 조건의 분류는 대분류 이름(예: "전자기기")만 들어와서 물품명으로 가른다.
+ * - 물품명 일치: 물품명 단어가 습득물 이름(fdPrdtNm)이나 소분류(prdtClNm의 ">" 뒤)에 있음
+ * - 물품명이 없으면: 소분류를 골랐으면 소분류 비교(100/55), 대분류만 골랐으면 대분류 일치로 100
+ * - 분류 조건이 없으면: 물품명이 맞으면 100, 아니면 정보 없음(null)
+ */
+export function categoryScore(conditionClNm, itemClNm, itemName = null, fdPrdtNm = '') {
+  const named = nameMatches(itemName, fdPrdtNm, itemClNm)
+  if (!conditionClNm) return named ? 100 : null
+  if (!itemClNm) return null
   if (majorCategory(conditionClNm) !== majorCategory(itemClNm)) return 0
   const wantSub = subCategory(conditionClNm)
+  const subMatched = Boolean(wantSub) && wantSub === subCategory(itemClNm)
+  if (named !== null) return named || subMatched ? 100 : 55
   if (!wantSub) return 100
-  return wantSub === subCategory(itemClNm) ? 100 : 55
+  return subMatched ? 100 : 55
 }
 
 /**
@@ -89,15 +113,15 @@ export function regionScore(condition, item, opts = {}) {
 
 /**
  * 습득물 하나의 매칭 점수
- * @param {{ prdtClNm?: string, clrNm?: string, region?: string, dateFrom: string, dateTo?: string }} condition
+ * @param {{ itemName?: string, prdtClNm?: string, clrNm?: string, region?: string, dateFrom: string, dateTo?: string }} condition
  *   SearchCondition (front/src/shared/types.js) 중 점수에 쓰는 값
- * @param {{ prdtClNm: string, clrNm: string, fdYmd: string, depPlace?: string, fdPlace?: string, orgNm?: string }} item
+ * @param {{ fdPrdtNm?: string, prdtClNm: string, clrNm: string, fdYmd: string, depPlace?: string, fdPlace?: string, orgNm?: string }} item
  * @param {{ sameProvince?: boolean }} [opts]
  * @returns {{ score: number, tags: { key: 'category'|'color'|'date'|'region', score: number|null }[] }}
  */
 export function scoreItem(condition, item, opts = {}) {
   const tags = [
-    { key: 'category', score: categoryScore(condition.prdtClNm, item.prdtClNm) },
+    { key: 'category', score: categoryScore(condition.prdtClNm, item.prdtClNm, condition.itemName, item.fdPrdtNm) },
     { key: 'color', score: colorScore(condition.clrNm, item.clrNm) },
     { key: 'date', score: dateScore(condition.dateFrom, condition.dateTo, item.fdYmd) },
     { key: 'region', score: regionScore(condition, item, opts) },
