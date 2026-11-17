@@ -7,12 +7,13 @@ import { errorHandler } from './middlewares/errorHandler.js'
 import { notFound } from './middlewares/notFound.js'
 import { createApiRouter } from './routes/index.js'
 import { createFoundItemsService } from './services/foundItems.js'
+import { createKakaoLocal } from './services/kakaoLocal.js'
 import { createLostItemsService } from './services/lostItems.js'
 import { createPoliceApi } from './services/policeApi.js'
 
 const defaultDeps = () => ({
   pingDb,
-  foundItems: createFoundItemsService({ policeApi: createPoliceApi() }),
+  foundItems: createFoundItemsService({ policeApi: createPoliceApi(), kakaoLocal: createKakaoLocal() }),
   lostItems: createLostItemsService({ repo: createLostItemsRepo(pool) }),
 })
 

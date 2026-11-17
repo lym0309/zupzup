@@ -100,6 +100,7 @@ npm run collect    # 지금 바로 30일 전체 수집 (서버를 안 띄워도 
 | GET | `/api/health` | 서버·DB 상태 (`200 {status:"ok", db:"ok"}` / DB 실패 시 `503`) |
 | GET | `/api/found-items` | 전체 습득물 (아래 참고) |
 | GET | `/api/found-items/filters` | 전체 습득물 필터 선택지 `{ categories, colors, regions, periods, defaultPeriod }` |
+| GET | `/api/found-items/:atcId/:fdSn` | 습득물 상세 (아래 참고) |
 | POST | `/api/lost-items` | 분실물 등록 (아래 참고) |
 | GET | `/api/lost-items/:id` | 저장된 검색 조건 |
 | PATCH | `/api/lost-items/:id` | 검색 조건 수정 |
@@ -136,5 +137,19 @@ npm run collect    # 지금 바로 30일 전체 수집 (서버를 안 띄워도 
 - 경찰청 API는 검색어·색상 필터를 지원하지 않아, `q`·`clr`가 있으면 기간 내 전체를 받아 서버에서 거릅니다. 메모리(192MB) 때문에 한 페이지씩 받아 처음 요청은 느리고(7일 약 10초, 30일 약 50초) 같은 조건은 10분간 캐시됩니다.
 - 포털기관 API는 접수순이 아니라 기관번호순으로 줘서, `q`·`clr`가 없는 기본 목록에서는 포털기관 항목 순서가 대략적입니다 (검색 시에는 정확). 습득물 DB 수집(#16) 후 해결 예정입니다.
 - 넘겨 볼 수 있는 건 앞 5,000건(625페이지)까지이고, `totalCount`는 실제 건수입니다.
+
+### `GET /api/found-items/:atcId/:fdSn`
+습득물 상세. 경찰청 상세 API 프록시 (`atcId`가 `V`로 시작하면 포털기관, 아니면 경찰관서). 10분 캐시.
+
+응답: 경찰청 필드명 그대로 (`atcId, fdSn, fdPrdtNm, prdtClNm, fdYmd, fdHor, fdPlace, depPlace, fdFilePathImg, csteSteNm, fndKeepOrgnSeNm, orgId, orgNm, tel`) + 아래 값.
+
+| 필드 | 설명 |
+|---|---|
+| `clrNm` | 상세 API에 없어 안내문(`uniq`)의 `[물품명(블랙(검정)색)]`에서 꺼낸 색상. 못 찾으면 `''` |
+| `memo` | `uniq`의 `특이사항 :` 뒤 텍스트. "없음"이면 `''` |
+| `isNew` | 습득일이 최근 3일 |
+| `location` | `orgNm`을 카카오 로컬 키워드 검색한 좌표 `{ lat, lng, placeName, address }`. `KAKAO_REST_API_KEY`가 없거나 못 찾으면 `null` |
+
+없는 관리번호는 `404`, 형식이 틀리면 `400`.
 
 에러 응답 형식: `{ "error": { "message": "..." } }`
