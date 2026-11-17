@@ -5,6 +5,10 @@ import { MAX_PAGE } from '../services/foundItems.js'
 
 const badRequest = (message) => Object.assign(new Error(message), { status: 400 })
 
+// 관리번호: 경찰관서 F2026111200005435, 포털기관 V0007751L11100002 / 순번: 1
+const ATC_ID_PATTERN = /^[A-Z][0-9A-Z]{5,29}$/
+const FD_SN_PATTERN = /^\d{1,5}$/
+
 const categoryNames = CATEGORIES.map((c) => c.name)
 const regionNames = REGIONS.map((r) => r.name)
 
@@ -46,6 +50,17 @@ export function createFoundItemsRouter({ foundItems }) {
   // GET /api/found-items?q=&cat=&clr=&region=&period=&page= — 전체 습득물 (최신순, 페이지당 8건)
   router.get('/', async (req, res) => {
     res.json(await foundItems.browse(parseBrowseQuery(req.query)))
+  })
+
+  // GET /api/found-items/:atcId/:fdSn — 습득물 상세 (경찰청 상세 API 프록시)
+  router.get('/:atcId/:fdSn', async (req, res) => {
+    const { atcId, fdSn } = req.params
+    if (!ATC_ID_PATTERN.test(atcId) || !FD_SN_PATTERN.test(fdSn)) {
+      throw badRequest('관리번호 형식이 올바르지 않습니다.')
+    }
+    const item = await foundItems.detail(atcId, fdSn)
+    if (!item) throw Object.assign(new Error('습득물을 찾을 수 없습니다.'), { status: 404 })
+    res.json(item)
   })
 
   return router

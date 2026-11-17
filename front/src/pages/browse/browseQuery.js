@@ -5,7 +5,10 @@ import { COLOR_FAMILIES, DEFAULT_PERIOD, PERIODS, findCategory, findRegion } fro
  * @typedef {{ q: string, cat: string, clr: string, region: string, period: number, page: number }} BrowseQuery
  */
 
-/** URL 쿼리 → 조회 조건. 잘못된 값은 기본값("전체")으로 */
+// 서버가 넘겨 볼 수 있게 하는 최대 페이지 (backend services/foundItems.js MAX_PAGE와 같게)
+export const MAX_PAGE = 625
+
+/** URL 쿼리 → 조회 조건. 잘못된 값은 기본값("전체")으로, 페이지는 1~MAX_PAGE로 맞춘다 */
 export function readBrowseQuery(searchParams) {
   const get = (key) => (searchParams.get(key) ?? '').trim()
   const cat = get('cat')
@@ -19,7 +22,7 @@ export function readBrowseQuery(searchParams) {
     clr: COLOR_FAMILIES.includes(clr) ? clr : '',
     region: findRegion(region) ? region : '',
     period: PERIODS.includes(period) ? period : DEFAULT_PERIOD,
-    page: Number.isInteger(page) && page >= 1 ? page : 1,
+    page: Number.isInteger(page) && page >= 1 ? Math.min(page, MAX_PAGE) : 1,
   }
 }
 
