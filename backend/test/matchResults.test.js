@@ -165,6 +165,27 @@ describe('matchResults.results', () => {
     expect(items[0].tags.find((t) => t.key === 'region').score).toBe(60) // 같은 시·도
   })
 
+  it('점수가 같으면 확인된 태그가 많은 쪽이 위 (색까지 맞음 > 색 모름)', async () => {
+    // F9가 atcId로는 먼저지만 색이 "기타"라 색 점수가 빠진 채 같은 점수 (습득일·지역 모두 일치)
+    const cond = { ...condition, dateTo: '2026-11-09' }
+    const rows = [item('F9', { clrNm: '기타', fdPlace: '택시' }), item('F1', { fdPlace: '택시' })]
+    const deps = fakeDeps({ cond, rows })
+    const { items } = await service(deps).results(ID)
+    expect(items.map((it) => [it.atcId, it.score])).toEqual([['F1', 100], ['F9', 100]])
+  })
+
+  it('목록 색이 "기타"면 상세 안내문의 색으로 색 점수 보정', async () => {
+    const uniq = '[2026.11.09]  [에어팟(블랙(검정)색)]을 습득/보관 하였습니다.'
+    const deps = fakeDeps({
+      rows: [item('F1', { clrNm: '기타', fdPlace: '택시' })],
+      details: { F1: { fdPlace: '택시', orgNm: '용강지구대', uniq } },
+    })
+    const { items } = await service(deps).results(ID)
+    expect(deps.calls.detail).toEqual(['F1'])
+    expect(items[0].clrNm).toBe('블랙(검정)')
+    expect(items[0].tags.find((t) => t.key === 'color').score).toBe(100)
+  })
+
   it('물품이나 날짜가 없으면 400, 없는 분실물은 404', async () => {
     const noDate = fakeDeps({ cond: { ...condition, dateFrom: null, dateTo: null } })
     await expect(service(noDate).results(ID)).rejects.toMatchObject({ status: 400 })

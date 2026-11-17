@@ -1,4 +1,6 @@
 import { hiddenKey } from '../db/hiddenItemsRepo.js'
+import { colorFamily } from '../rules/colors.js'
+import { colorFromUniq } from '../rules/foundItemDetail.js'
 import { majorCategory } from '../rules/foundItemCodes.js'
 import { addDays, isNewItem, todayKst } from '../rules/foundItemList.js'
 import { MIN_SCORE, scoreItem } from '../rules/score.js'
@@ -26,8 +28,17 @@ export function nameKeywords(itemName = '') {
 }
 
 // 점수 높은 순, 같으면 최근 접수 먼저
+// 정보 없는 태그는 총점에서 빠지므로, 점수가 같으면 확인된 태그가 많은 쪽(예: 색까지 맞음 > 색 모름)을 위로
+const knownTags = (e) => e.tags.filter((t) => t.score !== null).length
 const byScore = (a, b) =>
-  b.score - a.score || (b.item.regYmd ?? '').localeCompare(a.item.regYmd ?? '') || b.item.atcId.localeCompare(a.item.atcId)
+  b.score - a.score ||
+  knownTags(b) - knownTags(a) ||
+  (b.item.regYmd ?? '').localeCompare(a.item.regYmd ?? '') ||
+  b.item.atcId.localeCompare(a.item.atcId)
+
+// 목록 색이 "기타"처럼 색 계열을 모르면 상세 안내문의 색을 쓴다
+const unknownColor = (clrNm) => !clrNm || colorFamily(clrNm) === '기타'
+const needsDetail = (item) => !item.fdPlace || unknownColor(item.clrNm)
 
 const toResult = (item, { score, tags }, today) => ({
   atcId: item.atcId,
@@ -73,17 +84,23 @@ export function createMatchResultsService({ lostItems, candidates, hiddenItems, 
     }
     kept = kept.sort(byScore).slice(0, MAX_RESULTS)
 
-    // 상위 몇 건은 습득장소로 지역 점수 다시 계산. 상세 실패는 목록 점수 그대로
+    // 상위 몇 건은 상세(습득장소·안내문 색)로 지역·색 점수 다시 계산. 상세 실패는 목록 점수 그대로
     if (policeApi) {
       await Promise.all(
         kept
           .slice(0, REFINE_TOP)
-          .filter((e) => !e.item.fdPlace)
+          .filter((e) => needsDetail(e.item))
           .map(async (entry) => {
             try {
               const detail = await policeApi.getFoundItemDetail(entry.item.atcId, entry.item.fdSn)
               if (!detail) return
-              entry.item = { ...entry.item, fdPlace: detail.fdPlace, orgNm: detail.orgNm }
+              const detailColor = colorFromUniq(detail.uniq)
+              entry.item = {
+                ...entry.item,
+                fdPlace: detail.fdPlace,
+                orgNm: detail.orgNm,
+                clrNm: unknownColor(entry.item.clrNm) && !unknownColor(detailColor) ? detailColor : entry.item.clrNm,
+              }
               Object.assign(entry, scoreItem(condition, entry.item))
             } catch {
               // 무시: 보정만 못 할 뿐
