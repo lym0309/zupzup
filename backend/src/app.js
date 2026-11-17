@@ -1,9 +1,11 @@
 import cors from 'cors'
 import express from 'express'
 import { env } from './config/env.js'
+import { createHiddenItemsRepo } from './db/hiddenItemsRepo.js'
 import { createHistoryRepo } from './db/historyRepo.js'
 import { createLookupCodesRepo } from './db/lookupCodesRepo.js'
 import { createLostItemsRepo } from './db/lostItemsRepo.js'
+import { createMatchCandidatesRepo } from './db/matchCandidatesRepo.js'
 import { pingDb, pool } from './db/pool.js'
 import { errorHandler } from './middlewares/errorHandler.js'
 import { notFound } from './middlewares/notFound.js'
@@ -13,17 +15,26 @@ import { createHistoryService } from './services/history.js'
 import { createKakaoLocal } from './services/kakaoLocal.js'
 import { createLookupCodesService } from './services/lookupCodes.js'
 import { createLostItemsService } from './services/lostItems.js'
+import { createMatchResultsService } from './services/matchResults.js'
 import { createPoliceApi } from './services/policeApi.js'
 
 const defaultDeps = () => {
+  const policeApi = createPoliceApi()
   const lostItemsRepo = createLostItemsRepo(pool)
   const lookupCodes = createLookupCodesService({ repo: createLookupCodesRepo(pool), lostItemsRepo })
+  const lostItems = createLostItemsService({ repo: lostItemsRepo })
   return {
     pingDb,
-    foundItems: createFoundItemsService({ policeApi: createPoliceApi(), kakaoLocal: createKakaoLocal() }),
-    lostItems: createLostItemsService({ repo: lostItemsRepo }),
+    foundItems: createFoundItemsService({ policeApi, kakaoLocal: createKakaoLocal() }),
+    lostItems,
     lookupCodes,
     history: createHistoryService({ repo: createHistoryRepo(pool), lookupCodes }),
+    matchResults: createMatchResultsService({
+      lostItems,
+      candidates: createMatchCandidatesRepo(pool),
+      hiddenItems: createHiddenItemsRepo(pool),
+      policeApi,
+    }),
   }
 }
 
