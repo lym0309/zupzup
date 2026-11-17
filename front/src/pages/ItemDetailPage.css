@@ -1,0 +1,343 @@
+/* 습득물 상세 (시안 4a) */
+.detail {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.detail__topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 40px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.detail__back {
+  font-size: 14px;
+  color: var(--color-text-sub);
+}
+
+.detail__back:hover {
+  color: var(--color-primary);
+}
+
+.detail__id {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.detail__body {
+  display: grid;
+  grid-template-columns: 60fr 40fr;
+  gap: 28px;
+  padding: 28px 40px;
+}
+
+.detail__main,
+.detail__side {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.detail__main {
+  gap: 20px;
+}
+
+.detail__side {
+  gap: 12px;
+}
+
+.detail__message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 80px 20px;
+  font-size: 14px;
+  color: var(--color-text-sub);
+  text-align: center;
+}
+
+.detail__message-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+/* 1. 물품 카드 */
+.detail-item {
+  display: flex;
+  gap: 24px;
+  padding: 24px;
+  border-color: var(--color-border);
+}
+
+.detail-item__info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.detail-item__head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detail-item__title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.detail-item__name {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  word-break: keep-all;
+}
+
+.detail-item__status {
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--color-primary-bg);
+  color: var(--color-primary-dark);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.detail-item__category {
+  font-size: 14px;
+  color: var(--color-text-sub);
+}
+
+.detail-item__rows {
+  display: grid;
+  row-gap: 10px;
+  margin: 0;
+  font-size: 14.5px;
+}
+
+.detail-item__row {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+}
+
+.detail-item__row dt {
+  color: var(--color-text-muted);
+}
+
+.detail-item__row dd {
+  margin: 0;
+  white-space: pre-line; /* 특이사항 여러 줄 */
+  word-break: keep-all;
+}
+
+.detail__memo {
+  color: var(--color-text-strong-gray);
+}
+
+/* 2. 매칭 설명 카드 */
+.detail-match {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  border-color: var(--color-border);
+}
+
+.detail-match__summary {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.detail-match__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-match__headline {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.detail-match__sub {
+  font-size: 14px;
+  color: var(--color-text-sub);
+}
+
+.detail-match__tags {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 22px;
+  margin: 0;
+  padding: 18px 0 0;
+  border-top: 1px solid var(--color-divider);
+  list-style: none;
+}
+
+.detail-match__tag {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail-match__tag-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--color-text-sub);
+}
+
+.detail-match__tag-head b {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.detail-match__bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-ring-track);
+}
+
+.detail-match__bar span {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+}
+
+.detail-match__bar .is-match {
+  background: var(--color-match);
+}
+
+.detail-match__bar .is-partial {
+  background: var(--color-partial-bar);
+}
+
+.detail-match__bar .is-mismatch {
+  background: var(--color-mismatch-bar);
+}
+
+.detail-match__note {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* 우측: 보관장소 카드 */
+.detail-place {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 22px;
+  border-color: var(--color-border);
+}
+
+.detail-place__label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.detail-place__name {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.detail-place__rows {
+  display: grid;
+  row-gap: 8px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.detail-place__rows > div {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+}
+
+.detail-place__rows dt {
+  color: var(--color-text-muted);
+}
+
+.detail-place__rows dd {
+  margin: 0;
+}
+
+/* 우측: 행동 카드 2x2 */
+.detail-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.detail-action {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-text);
+  text-align: left;
+  transition: border-color 0.15s;
+}
+
+.detail-action:hover:not(.is-disabled):not(:disabled) {
+  border-color: var(--color-primary);
+}
+
+.detail-action.is-disabled,
+.detail-action:disabled {
+  opacity: 0.55;
+}
+
+.detail-action__dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-primary-bg);
+}
+
+.detail-action__text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.detail-action__title {
+  font-size: 15.5px;
+  font-weight: 700;
+}
+
+.detail-action__sub {
+  font-size: 13px;
+  color: var(--color-text-sub);
+  word-break: break-all;
+}
+
+/* 주색 카드 (길찾기). 시안: 보조 글자 #dcebea, 원 흰색 25% */
+.detail-action--primary {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-surface);
+}
+
+.detail-action--primary:hover {
+  border-color: var(--color-primary-dark);
+  background: var(--color-primary-dark);
+}
+
+.detail-action--primary .detail-action__sub {
+  color: color-mix(in srgb, var(--color-surface) 85%, var(--color-primary));
+}
+
+.detail-action--primary .detail-action__dot {
+  background: color-mix(in srgb, var(--color-surface) 25%, transparent);
+}
