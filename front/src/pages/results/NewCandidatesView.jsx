@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
-import { getNewCandidates } from '../../api/newCandidates.js'
+import { getNewCandidates, markSeen } from '../../api/newCandidates.js'
 import { getHiddenItems } from '../../shared/hiddenItems.js'
 import KakaoMap from '../../shared/KakaoMap.jsx'
 import { TAG_LABELS, TAG_ORDER, TAG_SYMBOL, headline, tagStatus } from '../../shared/matchCopy.js'
@@ -261,7 +261,11 @@ function PreviousRow({ item, isHiddenItem, selected, onSelect }) {
 }
 
 function InfoPanel({ item, lostItemId }) {
-  // TODO(@kwonminsooo): 신규 후보 상세로 들어가면 "본 후보"로 기록 → 다음 재조회 때 신규에서 제외 (new-candidates API와 같이)
+  // 신규 후보 상세로 들어가면 "본 후보"로 기록 → 다음 재조회 때 신규에서 빠진다
+  // 기록이 실패해도 상세는 열리게 (다음에 다시 신규로 보일 뿐)
+  const recordSeen = () => {
+    if (item.isNew) markSeen(lostItemId, item.atcId, item.fdSn).catch(() => {})
+  }
   const detailPath = `/items/${encodeURIComponent(item.atcId)}/${encodeURIComponent(item.fdSn)}?lostItemId=${encodeURIComponent(lostItemId)}`
   return (
     <section className="card newc-info" aria-label="선택한 습득물">
@@ -278,7 +282,7 @@ function InfoPanel({ item, lostItemId }) {
       </div>
       {headline(item.score) && <p className="newc-info__headline">{headline(item.score)}</p>}
       <MatchTags tags={item.tags} />
-      <Link to={detailPath} className="btn btn-primary newc-info__detail">
+      <Link to={detailPath} className="btn btn-primary newc-info__detail" onClick={recordSeen}>
         상세 보기
       </Link>
     </section>

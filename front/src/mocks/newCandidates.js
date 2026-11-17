@@ -50,8 +50,19 @@ const PREVIOUS_ITEMS = [
 
 const delay = (ms = 250) => new Promise((r) => setTimeout(r, ms))
 
+// 상세로 들어간 신규 후보 ("본 후보"). 새로고침하면 초기화된다
+const seen = new Set()
+const seenKey = (lostItemId, { atcId, fdSn }) => `${lostItemId}|${atcId}|${fdSn}`
+
+export async function mockMarkSeen(lostItemId, atcId, fdSn) {
+  seen.add(seenKey(lostItemId, { atcId, fdSn }))
+}
+
+// 조회만 한다 (실제 API와 같이 서버 상태를 바꾸지 않음). 본 후보는 신규에서 빠지고 이전 결과로 간다
 export async function mockGetNewCandidates(lostItemId) {
   await delay()
+  const candidates = lostItemId === 'mock-empty' ? [] : NEW_ITEMS
+  const isSeen = (item) => seen.has(seenKey(lostItemId, item))
   return {
     lostItemId,
     condition: {
@@ -69,7 +80,7 @@ export async function mockGetNewCandidates(lostItemId) {
     },
     lookupCode: 'FND-7K2Q-48',
     lastViewedAt: '2026-11-14T21:40:00+09:00',
-    newItems: lostItemId === 'mock-empty' ? [] : NEW_ITEMS,
-    previousItems: PREVIOUS_ITEMS,
+    newItems: candidates.filter((item) => !isSeen(item)),
+    previousItems: [...candidates.filter(isSeen).map((item) => ({ ...item, isNew: false })), ...PREVIOUS_ITEMS],
   }
 }
