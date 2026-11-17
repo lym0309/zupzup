@@ -5,6 +5,7 @@ import {
   colorScore,
   dateScore,
   regionKeywords,
+  provinceOf,
   regionScore,
   scoreItem,
 } from '../../src/rules/score.js'
@@ -91,14 +92,28 @@ describe('regionScore', () => {
     expect(regionScore({ region: '서울 역삼역' }, { depPlace: '보관소', fdPlace: '역삼역 2번 출구' })).toBe(100)
   })
 
-  it('키워드는 없지만 같은 시·도로 검색한 결과면 60, 아니면 10', () => {
+  it('구·역까지 적었는데 키워드는 없고 시·도만 같으면 60, 시·도가 다르면 10', () => {
+    expect(regionScore({ region: '서울 강남구' }, { depPlace: '용강지구대', region: '서울' })).toBe(60)
     expect(regionScore({ region: '서울 강남구' }, { depPlace: '용강지구대' }, { sameProvince: true })).toBe(60)
-    expect(regionScore({ region: '서울 강남구' }, { depPlace: '용강지구대' })).toBe(10)
+    expect(regionScore({ region: '서울 강남구' }, { depPlace: '서면지구대', region: '부산' })).toBe(10)
   })
 
-  it('시·도만 입력했으면 같은 시·도 검색 결과는 60, 판단 불가면 null', () => {
-    expect(regionScore({ region: '서울' }, { depPlace: '용강지구대' }, { sameProvince: true })).toBe(60)
-    expect(regionScore({ region: '' }, { depPlace: '용강지구대' })).toBeNull()
+  it('시·도만 골랐으면 같은 시·도 100 (더 자세히 비교할 수 없음), 다르면 10', () => {
+    expect(regionScore({ region: '서울' }, { depPlace: '용강지구대', region: '서울' })).toBe(100)
+    expect(regionScore({ region: '서울' }, { depPlace: '서면지구대', region: '부산' })).toBe(10)
+  })
+
+  it('판단할 수 없으면 null: 사용자 지역 없음, 습득물 시·도 모름(광주·전남 LCG000 등)', () => {
+    expect(regionScore({ region: '' }, { depPlace: '용강지구대', region: '서울' })).toBeNull()
+    expect(regionScore({ region: null }, { depPlace: '용강지구대' })).toBeNull()
+    expect(regionScore({ region: '광주' }, { depPlace: '목포경찰서', region: null })).toBeNull()
+  })
+
+  it('provinceOf', () => {
+    expect(provinceOf('서울 강남구')).toBe('서울')
+    expect(provinceOf('경기')).toBe('경기')
+    expect(provinceOf('어딘가')).toBeNull()
+    expect(provinceOf(null)).toBeNull()
   })
 })
 

@@ -1,146 +1,240 @@
 import request from 'supertest'
 import { describe, expect, it } from 'vitest'
 import { createApp } from '../src/app.js'
-import { createMockLostItems } from '../src/mocks/lostItems.js'
-import { createMatchResultsService, provinceCode, searchParams } from '../src/services/matchResults.js'
+import { hiddenKey } from '../src/db/hiddenItemsRepo.js'
+import { buildCandidatesQuery, fromRow } from '../src/db/matchCandidatesRepo.js'
+import { createMatchResultsService, nameKeywords, searchWindow } from '../src/services/matchResults.js'
 
 const NOW = () => new Date('2026-11-12T03:00:00Z') // KST 2026-11-12
+const ID = 'nyMw1pywIlWaR12w' // lostItemId 형식 (무작위 16자)
 
+// GET /api/lost-items/:id 응답 모양 (#29)
 const condition = {
-  lostItemId: 'lost-1',
-  prdtClNm: '전자기기 > 무선이어폰',
+  lostItemId: ID,
+  rawText: '서울에서 검정 에어팟을 잃어버렸어요',
+  extracted: true,
+  itemName: '에어팟',
+  prdtClNm: '전자기기',
+  prdtClCd: 'PRG000',
   clrNm: '검정',
-  region: '서울 강남구',
+  region: '서울',
+  lctCd: 'LCA000',
   dateFrom: '2026-11-08',
   dateTo: '2026-11-08',
+  brand: null,
+  feature: null,
 }
 
+// found_items에서 읽은 후보 (matchCandidatesRepo.fromRow 모양)
 const item = (atcId, extra = {}) => ({
   atcId, fdSn: '1', fdPrdtNm: '에어팟', prdtClNm: '전자기기 > 무선이어폰', clrNm: '블랙(검정)',
-  fdYmd: '2026-11-09', depPlace: '용강지구대', fdFilePathImg: 'no_img', ...extra,
+  fdYmd: '2026-11-09', regYmd: '2026-11-09', depPlace: '용강지구대', fdFilePathImg: 'no_img',
+  region: '서울', fdPlace: '', orgNm: '', ...extra,
 })
 
-function fakePoliceApi({ police = [], portal = [], details = {} } = {}) {
-  const calls = { list: [], detail: [] }
+const notFound = () => Object.assign(new Error('분실물을 찾을 수 없어요.'), { status: 404 })
+
+function fakeDeps({ cond = condition, rows = [], details = {} } = {}) {
+  const calls = { find: [], detail: [] }
+  const hidden = new Set()
   return {
     calls,
-    async listFoundItems(source, params) {
-      calls.list.push({ source, ...params })
-      const all = { police, portal }[source]
-      const start = (params.pageNo - 1) * params.numOfRows
-      return { totalCount: all.length, items: all.slice(start, start + params.numOfRows) }
+    hidden,
+    lostItems: { get: async (id) => (id === cond.lostItemId ? cond : Promise.reject(notFound())) },
+    candidates: {
+      async find(q) {
+        calls.find.push(q)
+        return rows
+      },
     },
-    async getFoundItemDetail(atcId) {
-      calls.detail.push(atcId)
-      return details[atcId] ?? null
+    hiddenItems: {
+      hide: async (id, a, s) => void hidden.add(hiddenKey(a, s)),
+      unhide: async (id, a, s) => void hidden.delete(hiddenKey(a, s)),
+      listKeys: async () => new Set(hidden),
+    },
+    policeApi: {
+      async getFoundItemDetail(atcId) {
+        calls.detail.push(atcId)
+        return details[atcId] ?? null
+      },
     },
   }
 }
 
-const lostItems = (c = condition) => ({ get: async (id) => (id === c.lostItemId ? c : null) })
+const service = (deps) => createMatchResultsService({ ...deps, now: NOW })
 
-describe('searchParams', () => {
-  it('분류·지역 코드와 습득일 범위 (분실 하루 전 ~ 분실 후 14일, 오늘까지)', () => {
-    expect(searchParams(condition, '2026-11-12')).toEqual({
-      startYmd: '20261107', endYmd: '20261112', categoryCode: 'PRG000', regionCode: 'LCA000',
-    })
-    expect(searchParams({ ...condition, dateFrom: '2026-10-01', dateTo: '2026-10-02' }, '2026-11-12').endYmd).toBe('20261016')
-  })
-
-  it('코드가 있으면 그대로 쓴다', () => {
-    expect(searchParams({ ...condition, prdtClCd: 'PRH000', lctCd: 'LCV000' }, '2026-11-12')).toMatchObject({
-      categoryCode: 'PRH000', regionCode: 'LCV000',
+describe('검색 범위·키워드', () => {
+  it('searchWindow: 분실 하루 전 ~ 분실 후 14일 (오늘까지)', () => {
+    expect(searchWindow(condition, '2026-11-12')).toEqual({ fromYmd: '2026-11-07', toYmd: '2026-11-12' })
+    expect(searchWindow({ dateFrom: '2026-10-01', dateTo: '2026-10-02' }, '2026-11-12')).toEqual({
+      fromYmd: '2026-09-30', toYmd: '2026-10-16',
     })
   })
 
-  it('provinceCode', () => {
-    expect(provinceCode('서울 강남구')).toBe('LCA000')
-    expect(provinceCode('서울특별시')).toBe('LCA000')
-    expect(provinceCode('어딘가')).toBeUndefined()
+  it('nameKeywords: 공백으로 나누고 2글자 이상, 중복 제거', () => {
+    expect(nameKeywords('무선이어폰 케이스 케이스 a')).toEqual(['무선이어폰', '케이스'])
+    expect(nameKeywords(null)).toEqual([])
+  })
+})
+
+describe('matchCandidatesRepo', () => {
+  it('보관 중(gone_at IS NULL)이고 습득일 범위·분류로 고른다', () => {
+    const { sql, params } = buildCandidatesQuery({ fromYmd: '2026-11-07', toYmd: '2026-11-12', category: '전자기기' })
+    expect(sql).toContain('gone_at IS NULL')
+    expect(sql).toContain('category = ?')
+    expect(sql).toMatch(/ORDER BY reg_ymd DESC/)
+    expect(params).toEqual(['2026-11-07', '2026-11-12', '전자기기'])
+  })
+
+  it('분류가 없으면 물품명 키워드 LIKE (특수문자는 글자 그대로)', () => {
+    const { sql, params } = buildCandidatesQuery({ fromYmd: 'a', toYmd: 'b', nameKeywords: ['에어팟', '100%'] })
+    expect(sql).toContain('(fd_prdt_nm LIKE ? OR fd_prdt_nm LIKE ?)')
+    expect(params.slice(2)).toEqual(['%에어팟%', '%100\\%%'])
+  })
+
+  it('fromRow: 테이블 컬럼 → 목록 API 필드명', () => {
+    expect(
+      fromRow({
+        atc_id: 'F1', fd_sn: '1', fd_prdt_nm: '지갑', prdt_cl_nm: '지갑 > 남성용 지갑', clr_nm: '블랙(검정)',
+        fd_ymd: '2026-11-09', reg_ymd: '2026-11-10', dep_place: '서면지구대', img_url: 'x', region: '부산',
+        detail_fd_place: null, detail_org_nm: null,
+      }),
+    ).toEqual({
+      atcId: 'F1', fdSn: '1', fdPrdtNm: '지갑', prdtClNm: '지갑 > 남성용 지갑', clrNm: '블랙(검정)',
+      fdYmd: '2026-11-09', regYmd: '2026-11-10', depPlace: '서면지구대', fdFilePathImg: 'x', region: '부산',
+      fdPlace: '', orgNm: '',
+    })
   })
 })
 
 describe('matchResults.results', () => {
   it('점수순으로 돌려주고 40점 미만은 뺀다', async () => {
-    const api = fakePoliceApi({
-      police: [
-        item('F1'), // 분류·색상 일치, 다음 날, 같은 시·도 → 높음
+    const deps = fakeDeps({
+      rows: [
+        item('F1'), // 분류·색상·지역 일치, 다음 날 → 높음
         item('F2', { clrNm: '레드(빨강)', fdYmd: '2026-11-11' }), // 색상 불일치, 3일 뒤
-        item('F3', { prdtClNm: '지갑 > 남성용 지갑', clrNm: '레드(빨강)', fdYmd: '2026-11-07' }), // 거의 불일치
+        item('F3', { prdtClNm: '지갑 > 남성용 지갑', clrNm: '레드(빨강)', fdYmd: '2026-11-07', region: '부산' }), // 거의 불일치
       ],
-      portal: [item('V0000001L11090001', { depPlace: '강남역 유실물센터' })], // 지역 키워드 일치 → 가장 높음
     })
-    const svc = createMatchResultsService({ policeApi: api, lostItems: lostItems(), now: NOW })
-    const { condition: c, items } = await svc.results('lost-1')
+    const { condition: c, items } = await service(deps).results(ID)
 
     expect(c).toEqual(condition)
-    expect(items.map((r) => r.atcId)).toEqual(['V0000001L11090001', 'F1', 'F2'])
+    expect(items.map((r) => r.atcId)).toEqual(['F1', 'F2'])
     expect(items.every((r) => r.score >= 40)).toBe(true)
-    expect(items[0]).toMatchObject({ isNew: false, tags: expect.any(Array), score: expect.any(Number) }) // 11-09: 3일 전
+    expect(items[0].tags).toEqual([
+      { key: 'category', score: 100 }, // 대분류만 골랐으므로 대분류 일치 = 100
+      { key: 'color', score: 100 },
+      { key: 'date', score: 95 },
+      { key: 'region', score: 100 }, // 시·도만 골랐고 같은 시·도
+    ])
     expect(items.find((r) => r.atcId === 'F2').isNew).toBe(true) // 11-11
-    expect(items[0].tags.find((t) => t.key === 'region').score).toBe(100)
+    expect(items[0]).not.toHaveProperty('region') // 응답은 MatchResult 필드만
   })
 
-  it('상위 결과는 상세의 습득장소로 지역 점수를 보정한다', async () => {
-    const api = fakePoliceApi({
-      police: [item('F1')],
+  it('조건의 분류와 습득일 범위로 후보를 찾는다. 분류가 없으면 물품명 키워드로', async () => {
+    const deps = fakeDeps()
+    await service(deps).results(ID)
+    expect(deps.calls.find[0]).toEqual({ fromYmd: '2026-11-07', toYmd: '2026-11-12', category: '전자기기', nameKeywords: [] })
+
+    const noCategory = fakeDeps({ cond: { ...condition, prdtClNm: null, itemName: '에어팟 프로' } })
+    await service(noCategory).results(ID)
+    expect(noCategory.calls.find[0]).toMatchObject({ category: null, nameKeywords: ['에어팟', '프로'] })
+  })
+
+  it('습득장소를 모르는 상위 결과는 상세 API로 지역 점수 보정 (구·역 키워드)', async () => {
+    const deps = fakeDeps({
+      cond: { ...condition, region: '서울 강남구' },
+      rows: [item('F1')],
       details: { F1: { fdPlace: '강남구 역삼동 카페', orgNm: '용강지구대' } },
     })
-    const svc = createMatchResultsService({ policeApi: api, lostItems: lostItems(), now: NOW })
-    const { items } = await svc.results('lost-1')
+    const { items } = await service(deps).results(ID)
     expect(items[0].tags.find((t) => t.key === 'region').score).toBe(100)
-    expect(api.calls.detail).toEqual(['F1'])
+    expect(deps.calls.detail).toEqual(['F1'])
   })
 
-  it('상세 조회가 실패해도 목록 점수로 결과를 돌려준다', async () => {
-    const api = fakePoliceApi({ police: [item('F1')] })
-    api.getFoundItemDetail = async () => {
+  it('상세가 이미 저장돼 있으면 상세 API를 부르지 않는다. 상세 실패는 목록 점수 그대로', async () => {
+    const saved = fakeDeps({ rows: [item('F1', { fdPlace: '택시' })] })
+    await service(saved).results(ID)
+    expect(saved.calls.detail).toEqual([])
+
+    const failing = fakeDeps({ cond: { ...condition, region: '서울 강남구' }, rows: [item('F1')] })
+    failing.policeApi.getFoundItemDetail = async () => {
       throw new Error('down')
     }
-    const svc = createMatchResultsService({ policeApi: api, lostItems: lostItems(), now: NOW })
-    const { items } = await svc.results('lost-1')
-    expect(items).toHaveLength(1)
-    expect(items[0].tags.find((t) => t.key === 'region').score).toBe(60)
+    const { items } = await service(failing).results(ID)
+    expect(items[0].tags.find((t) => t.key === 'region').score).toBe(60) // 같은 시·도
   })
 
-  it('조건의 분류·지역 코드와 날짜로 경찰청을 조회한다', async () => {
-    const api = fakePoliceApi()
-    const svc = createMatchResultsService({ policeApi: api, lostItems: lostItems(), now: NOW })
-    await svc.results('lost-1')
-    expect(api.calls.list[0]).toMatchObject({ categoryCode: 'PRG000', regionCode: 'LCA000', startYmd: '20261107', endYmd: '20261112' })
+  it('물품이나 날짜가 없으면 400, 없는 분실물은 404', async () => {
+    const noDate = fakeDeps({ cond: { ...condition, dateFrom: null, dateTo: null } })
+    await expect(service(noDate).results(ID)).rejects.toMatchObject({ status: 400 })
+    const noItem = fakeDeps({ cond: { ...condition, itemName: null, prdtClNm: null } })
+    await expect(service(noItem).results(ID)).rejects.toMatchObject({ status: 400 })
+    await expect(service(fakeDeps()).results('AAAAAAAAAAAAAAAA')).rejects.toMatchObject({ status: 404 })
   })
 
-  it('같은 분실물은 캐시, 없는 분실물은 null', async () => {
-    const api = fakePoliceApi({ police: [item('F1')] })
-    const svc = createMatchResultsService({ policeApi: api, lostItems: lostItems(), now: NOW })
-    await svc.results('lost-1')
-    const before = api.calls.list.length
-    await svc.results('lost-1')
-    expect(api.calls.list.length).toBe(before)
-    expect(await svc.results('nope')).toBeNull()
+  it('숨긴 습득물은 빼고, 숨기기 취소하면 다시 보인다 (캐시와 상관없이 바로)', async () => {
+    const deps = fakeDeps({ rows: [item('F1'), item('F2')] })
+    const svc = service(deps)
+    // 점수·접수일이 같으면 관리번호 큰 것(나중 접수) 먼저
+    expect((await svc.results(ID)).items.map((r) => r.atcId)).toEqual(['F2', 'F1'])
+
+    await svc.hide(ID, 'F1', '1')
+    expect((await svc.results(ID)).items.map((r) => r.atcId)).toEqual(['F2'])
+    await svc.unhide(ID, 'F1', '1')
+    expect((await svc.results(ID)).items.map((r) => r.atcId)).toEqual(['F2', 'F1'])
+    expect(deps.calls.find).toHaveLength(1) // 결과는 캐시
+  })
+
+  it('없는 분실물은 숨길 수 없다 (404)', async () => {
+    await expect(service(fakeDeps()).hide('AAAAAAAAAAAAAAAA', 'F1', '1')).rejects.toMatchObject({ status: 404 })
+  })
+
+  it('조건을 수정하면 다시 계산한다', async () => {
+    const deps = fakeDeps({ rows: [item('F1')] })
+    const svc = service(deps)
+    await svc.results(ID)
+    deps.lostItems.get = async () => ({ ...condition, clrNm: '흰색' })
+    await svc.results(ID)
+    expect(deps.calls.find).toHaveLength(2)
   })
 })
 
-describe('mock 분실물 (lostItems)', () => {
-  it('데모 조건은 오늘 기준 날짜', async () => {
-    const store = createMockLostItems({ now: NOW })
-    const demo = await store.get('demo')
-    expect(demo).toMatchObject({ lostItemId: 'demo', dateFrom: '2026-11-09', prdtClNm: '전자기기 > 무선이어폰' })
-    expect(await store.get('없는id')).toBeNull()
-  })
-})
+describe('라우트', () => {
+  const app = (matchResults) => createApp({ pingDb: async () => {}, matchResults })
 
-describe('GET /api/lost-items/:id/results', () => {
-  const app = (results) => createApp({ pingDb: async () => {}, matchResults: { results } })
-
-  it('조건과 결과를 돌려준다', async () => {
-    const res = await request(app(async (id) => ({ condition: { lostItemId: id }, items: [] }))).get('/api/lost-items/demo/results')
+  it('GET /api/lost-items/:id/results', async () => {
+    const res = await request(app({ results: async (id) => ({ condition: { lostItemId: id }, items: [] }) })).get(
+      `/api/lost-items/${ID}/results`,
+    )
     expect(res.status).toBe(200)
-    expect(res.body).toEqual({ condition: { lostItemId: 'demo' }, items: [] })
+    expect(res.body).toEqual({ condition: { lostItemId: ID }, items: [] })
   })
 
-  it('없는 분실물 404, 형식 오류 400', async () => {
-    expect((await request(app(async () => null)).get('/api/lost-items/nope/results')).status).toBe(404)
-    expect((await request(app(async () => null)).get('/api/lost-items/a%20b/results')).status).toBe(400)
+  it('서비스 오류 상태 그대로 (404·400), 형식 오류 400', async () => {
+    const fail = (status) => app({ results: async () => Promise.reject(Object.assign(new Error('x'), { status })) })
+    expect((await request(fail(404)).get(`/api/lost-items/${ID}/results`)).status).toBe(404)
+    expect((await request(fail(400)).get(`/api/lost-items/${ID}/results`)).status).toBe(400)
+    expect((await request(fail(404)).get('/api/lost-items/a%20b/results')).status).toBe(400)
+  })
+
+  it('PUT·DELETE /api/lost-items/:id/hidden-items/:atcId/:fdSn → 204', async () => {
+    const calls = []
+    const svc = {
+      hide: async (...a) => void calls.push(['hide', ...a]),
+      unhide: async (...a) => void calls.push(['unhide', ...a]),
+    }
+    expect((await request(app(svc)).put(`/api/lost-items/${ID}/hidden-items/F2026111200005435/1`)).status).toBe(204)
+    expect((await request(app(svc)).delete(`/api/lost-items/${ID}/hidden-items/V0007722L11120002/1`)).status).toBe(204)
+    expect(calls).toEqual([
+      ['hide', ID, 'F2026111200005435', '1'],
+      ['unhide', ID, 'V0007722L11120002', '1'],
+    ])
+  })
+
+  it('관리번호 형식이 틀리면 400', async () => {
+    const svc = { hide: async () => {} }
+    expect((await request(app(svc)).put(`/api/lost-items/${ID}/hidden-items/f123/1`)).status).toBe(400)
+    expect((await request(app(svc)).put(`/api/lost-items/${ID}/hidden-items/F2026111200005435/x`)).status).toBe(400)
   })
 })

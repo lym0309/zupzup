@@ -59,20 +59,32 @@ export function regionKeywords(region = '') {
     .filter((w) => w.length >= 2)
 }
 
+/** "서울 강남구" → "서울" (시·도 이름이 없으면 null) */
+export function provinceOf(region = '') {
+  return region?.trim().match(PROVINCES)?.[1] ?? null
+}
+
 /**
- * 지역: 장소(보관장소·습득장소·기관명)에 사용자 지역 키워드가 있으면 100
- * 키워드는 없지만 같은 시·도로 검색한 결과면 60 (지역 코드로 거른 결과)
- * 둘 다 판단할 수 없으면 null
- * @param {{ region?: string }} condition
- * @param {{ depPlace?: string, fdPlace?: string, orgNm?: string }} item
- * @param {{ sameProvince?: boolean }} opts  검색할 때 지역 코드로 걸렀는지
+ * 지역
+ * - 장소(보관장소·습득장소·기관명)에 사용자가 적은 구·역 등 키워드가 있으면 100
+ * - 같은 시·도: 사용자가 시·도만 골랐으면 100 (더 자세히 비교할 수 없음), 구·역까지 적었으면 60
+ * - 다른 시·도 10
+ * - 사용자 지역이 없거나 습득물 시·도를 모르면 null (정보 없음)
+ * @param {{ region?: string|null }} condition
+ * @param {{ depPlace?: string, fdPlace?: string, orgNm?: string, region?: string|null }} item  region: 습득물 시·도 (수집 시 저장)
+ * @param {{ sameProvince?: boolean }} [opts]  시·도가 같은지 이미 알 때 (예: 지역 코드로 걸러 받은 목록)
  */
-export function regionScore(condition, item, { sameProvince = false } = {}) {
+export function regionScore(condition, item, opts = {}) {
+  if (!condition.region) return null
   const keywords = regionKeywords(condition.region)
   const places = [item.depPlace, item.fdPlace, item.orgNm].filter(Boolean).join(' ')
   if (keywords.length > 0 && keywords.some((k) => places.includes(k))) return 100
-  if (sameProvince) return 60
-  return keywords.length > 0 ? 10 : null
+
+  const province = provinceOf(condition.region)
+  const sameProvince = opts.sameProvince ?? (province && item.region ? item.region === province : null)
+  if (sameProvince === null) return null
+  if (!sameProvince) return 10
+  return keywords.length > 0 ? 60 : 100
 }
 
 /**

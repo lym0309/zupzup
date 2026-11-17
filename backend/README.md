@@ -55,6 +55,7 @@ npm run migrate    # 아직 실행 안 된 파일만 번호순으로 실행
 |---|---|---|
 | `found_items` | `001_found_items.sql` | 경찰청 습득물 (경찰서 + 포털기관). 목록 필드 + 수집 시 계산값(대분류·색 계열·지역·사진 여부) + 상세 필드(`detail_*`) |
 | `lost_items` | `002_lost_items.sql` | 분실물 검색 조건 (입력 문장 + 조건 확인 화면에서 정한 조건). `id` = lostItemId (무작위 16자) |
+| `hidden_items` | `005_hidden_items.sql` | "내 물건이 아니에요"로 숨긴 습득물 (분실물별). 매칭 결과·신규 후보에서 뺀다 |
 | `schema_migrations` | (자동 생성) | 마이그레이션 실행 기록 |
 
 ## 습득물 수집
@@ -105,6 +106,8 @@ npm run collect    # 지금 바로 30일 전체 수집 (서버를 안 띄워도 
 | GET | `/api/lost-items/:id` | 저장된 검색 조건 |
 | PATCH | `/api/lost-items/:id` | 검색 조건 수정 |
 | GET | `/api/lost-items/:id/results` | 매칭 결과 (아래 참고) |
+| PUT | `/api/lost-items/:id/hidden-items/:atcId/:fdSn` | "내 물건이 아니에요" 숨기기 → `204` |
+| DELETE | `/api/lost-items/:id/hidden-items/:atcId/:fdSn` | 숨기기 취소 → `204` |
 
 ### 분실물 `/api/lost-items`
 - `POST { rawText }` → `201` 검색 조건. `rawText`는 공백 제외 5자 이상, 500자 이하
@@ -154,9 +157,11 @@ npm run collect    # 지금 바로 30일 전체 수집 (서버를 안 띄워도 
 없는 관리번호는 `404`, 형식이 틀리면 `400`.
 
 ### `GET /api/lost-items/:id/results`
-매칭 결과. 분실물 조건의 분류·지역 코드와 날짜(분실 하루 전 ~ 분실 후 14일)로 경찰청 목록을 훑으며 점수를 매긴다. 40점 미만 제외, 점수순 최대 100건, 상위 10건은 상세 API의 습득장소로 지역 점수 보정. 10분 캐시.
+매칭 결과. 수집된 `found_items`(보관 중인 것만, `gone_at IS NULL`)에서 습득일(분실 하루 전 ~ 분실 후 14일)과 분류로 후보를 골라 점수를 매긴다. 분류가 없으면 물품명 키워드로 고른다. 40점 미만 제외, 점수순 최대 100건, 상위 10건 중 습득장소를 모르는 건 상세 API로 받아 지역 점수 보정. "내 물건이 아니에요"로 숨긴 습득물(`hidden_items`)은 뺀다. 결과는 조건별 10분 캐시 (숨기기는 바로 반영).
 
-응답: `{ condition: SearchCondition, items: MatchResult[] }` (`MatchResult`는 경찰청 목록 필드 + `score`, `tags`, `isNew`). 없는 분실물은 `404`.
+응답: `{ condition: SearchCondition, items: MatchResult[] }` (`MatchResult`는 경찰청 목록 필드 + `score`, `tags`, `isNew`). 물품·날짜가 없으면 `400`, 없는 분실물은 `404`.
+
+- 수집기가 최근 30일(`COLLECT_DAYS`)만 저장하므로, 그보다 오래전에 잃어버린 물건은 결과가 적을 수 있어요.
 
 점수 (`src/rules/score.js`, 순수 함수 · 신규 후보 판정에서 재사용)
 | 조건 | 가중치 | 점수 |
@@ -164,10 +169,9 @@ npm run collect    # 지금 바로 30일 전체 수집 (서버를 안 띄워도 
 | 분류 | 35 | 소분류까지 일치 100 / 대분류만 55 / 불일치 0 (조건이 대분류만이면 대분류 일치 100) |
 | 색상 | 20 | 같은 계열 100 / 비슷한 계열 60 / 불일치 10 / 습득물 색 "기타"면 정보 없음 |
 | 날짜 | 25 | 분실 기간 안 100, 다음 날 95, 이후 하루마다 -8 / 분실 하루 전 50, 그 이전 10 |
-| 지역 | 20 | 보관장소·습득장소에 지역 키워드(예: 강남) 100 / 같은 시·도 60 / 그 외 10 |
+| 지역 | 20 | 장소에 구·역 등 키워드(예: 강남) 100 / 같은 시·도: 시·도만 골랐으면 100, 구·역까지 적었으면 60 / 다른 시·도 10 / 습득물 시·도를 모르면 정보 없음 |
 
 정보가 없는 조건(`score: null`)은 빼고 나머지 가중치로 평균을 낸다.
-
-> ⚠️ 분실물 조건 저장소(`POST /api/lost-items`)가 아직 없어 `src/mocks/lostItems.js`의 데모 조건(`demo`, `demo-wallet`, `demo-empty`)으로 동작한다.
+신규 후보(new-candidates)에서도 `scoreItem(condition, item)`과 `hiddenItemsRepo.listKeys(lostItemId)`를 같이 쓰면 같은 기준이 된다.
 
 에러 응답 형식: `{ "error": { "message": "..." } }`
