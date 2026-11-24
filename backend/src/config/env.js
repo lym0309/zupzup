@@ -54,4 +54,13 @@ export const env = {
   kakao: {
     restApiKey: process.env.KAKAO_REST_API_KEY ?? '',
   },
+
+  // Gemini (분실물 문장 → 검색 조건 추출). 키가 없으면 추출 없이 3b(직접 고르기)로
+  gemini: {
+    apiKey: process.env.GEMINI_API_KEY ?? '',
+    // 앞에서부터 시도할 모델 (쉼표로 구분). 앞 모델이 실패(503 과부하 등)하면 다음 모델
+    models: toList(process.env.GEMINI_MODELS || 'gemini-flash-lite-latest,gemini-3.5-flash-lite,gemini-3.1-flash-lite'),
+    // 추출 전체 제한 시간. 넘으면 추출 없이 직접 고르기(3b)로
+    timeoutMs: toNumber(process.env.GEMINI_TIMEOUT_MS, 12_000, 1_000, 60_000),
+  },
 }

@@ -13,6 +13,7 @@ import { createApiRouter } from './routes/index.js'
 import { createFoundItemsService } from './services/foundItems.js'
 import { createHistoryService } from './services/history.js'
 import { createKakaoLocal } from './services/kakaoLocal.js'
+import { createGeminiExtractor } from './services/llm.js'
 import { createLookupCodesService } from './services/lookupCodes.js'
 import { createLostItemsService } from './services/lostItems.js'
 import { createMatchResultsService } from './services/matchResults.js'
@@ -22,7 +23,7 @@ const defaultDeps = () => {
   const policeApi = createPoliceApi()
   const lostItemsRepo = createLostItemsRepo(pool)
   const lookupCodes = createLookupCodesService({ repo: createLookupCodesRepo(pool), lostItemsRepo })
-  const lostItems = createLostItemsService({ repo: lostItemsRepo })
+  const lostItems = createLostItemsService({ repo: lostItemsRepo, extractor: createGeminiExtractor() })
   return {
     pingDb,
     foundItems: createFoundItemsService({ policeApi, kakaoLocal: createKakaoLocal() }),

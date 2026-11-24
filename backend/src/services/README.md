@@ -4,4 +4,4 @@
 
 - `policeApi.js` — 경찰청 습득물 API 호출 + XML → JSON 변환 (예정)
 - `collector.js` — 습득물 주기적 수집 (예정)
-- `llm.js` — Gemini 호출 (예정)
+- `llm.js` — Gemini 호출: 분실물 문장 → 검색 조건 추출
