@@ -17,8 +17,8 @@ const httpError = (status, message) => Object.assign(new Error(message), { statu
 export const newLostItemId = () => randomBytes(12).toString('base64url')
 export const LOST_ITEM_ID = /^[A-Za-z0-9_-]{16}$/
 
-// 문장에서 조건을 뽑는 자리. Gemini 연동 전까지는 항상 "못 뽑음" → 3b 화면에서 직접 고른다
-// 연동 후: async (rawText, { today }) => ({ itemName, prdtClNm, clrNm, region, dateFrom, dateTo, brand, feature })
+// 문장에서 조건을 뽑는 함수: async (rawText, { today }) => ({ itemName, prdtClNm, clrNm, region, dateFrom, dateTo, brand, feature }) | null
+// 실제로는 services/llm.js의 Gemini 추출기를 쓴다. 기본값(noExtractor)은 항상 "못 뽑음" → 3b 화면에서 직접 고른다
 export const noExtractor = async () => null
 
 // API 응답 (공유 계약 SearchCondition + extracted). 모르는 값은 null
