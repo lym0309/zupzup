@@ -42,6 +42,7 @@ const toResult = (item, { score, tags }, today) => ({
   prdtClNm: item.prdtClNm,
   clrNm: item.clrNm,
   fdYmd: item.fdYmd,
+  regYmd: item.regYmd,
   depPlace: item.depPlace,
   fdFilePathImg: item.fdFilePathImg,
   score,
@@ -105,7 +106,8 @@ export function createMatchResultsService({ lostItems, candidates, hiddenItems, 
       kept = kept.filter((e) => e.score >= MIN_SCORE).sort(byScore)
     }
 
-    return kept.map((e) => toResult(e.item, e, today))
+    // firstSeenAt(처음 수집한 시각)은 신규 후보 판정용. 매칭 결과 응답에는 넣지 않는다
+    return kept.map((e) => ({ result: toResult(e.item, e, today), firstSeenAt: e.item.firstSeenAt ?? null }))
   }
 
   // 분실물이 없으면 404 (lostItems.get이 던짐)
@@ -115,8 +117,11 @@ export function createMatchResultsService({ lostItems, candidates, hiddenItems, 
     return condition
   }
 
-  /** @returns {Promise<{ condition: object, items: object[] }>} */
-  async function results(lostItemId) {
+  /**
+   * 점수순 전체 결과 (숨긴 것 포함). 신규 후보(services/newCandidates.js)도 같은 계산을 쓴다
+   * @returns {Promise<{ condition: object, entries: { result: object, firstSeenAt: string|null }[] }>}
+   */
+  async function scored(lostItemId) {
     const condition = await searchableCondition(lostItemId)
     const key = `${lostItemId}|${JSON.stringify(condition)}` // 조건을 수정하면 다시 계산
     let hit = cache.get(key)
@@ -127,9 +132,14 @@ export function createMatchResultsService({ lostItems, candidates, hiddenItems, 
       promise.catch(() => cache.delete(key))
       if (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value)
     }
+    return { condition, entries: await hit.promise }
+  }
+
+  /** @returns {Promise<{ condition: object, items: object[] }>} */
+  async function results(lostItemId) {
     // 숨긴 목록은 바로 반영되도록 캐시 밖에서 뺀다
-    const [items, hidden] = await Promise.all([hit.promise, hiddenItems.listKeys(lostItemId)])
-    return { condition, items: items.filter((it) => !hidden.has(hiddenKey(it.atcId, it.fdSn))) }
+    const [{ condition, entries }, hidden] = await Promise.all([scored(lostItemId), hiddenItems.listKeys(lostItemId)])
+    return { condition, items: entries.map((e) => e.result).filter((it) => !hidden.has(hiddenKey(it.atcId, it.fdSn))) }
   }
 
   /** "내 물건이 아니에요" / 숨기기 취소 */
@@ -142,5 +152,5 @@ export function createMatchResultsService({ lostItems, candidates, hiddenItems, 
     await hiddenItems.unhide(lostItemId, atcId, fdSn)
   }
 
-  return { results, hide, unhide }
+  return { results, scored, hide, unhide }
 }

@@ -5,6 +5,7 @@ import { createHistoryRouter } from './history.js'
 import { createLookupCodesRouter } from './lookupCodes.js'
 import { createLostItemsRouter } from './lostItems.js'
 import { createMatchResultsRouter } from './matchResults.js'
+import { createNewCandidatesRouter } from './newCandidates.js'
 
 // /api 하위 라우터 모음
 // 기능 라우터는 여기에 추가: router.use('/lost', createLostRouter(deps))
@@ -16,5 +17,6 @@ export function createApiRouter(deps) {
   router.use('/lookup-codes', createLookupCodesRouter(deps))
   router.use('/history', createHistoryRouter(deps))
   router.use('/lost-items', createMatchResultsRouter(deps))
+  router.use('/lost-items', createNewCandidatesRouter(deps))
   return router
 }

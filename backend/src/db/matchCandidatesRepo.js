@@ -31,7 +31,7 @@ export function buildCandidatesQuery({ fromYmd, toYmd, category = null, nameKeyw
     params.push(...likeParams)
   }
   const sql = `SELECT atc_id, fd_sn, fd_prdt_nm, prdt_cl_nm, clr_nm, fd_ymd, reg_ymd, dep_place, img_url,
-                      region, detail_fd_place, detail_org_nm
+                      region, detail_fd_place, detail_org_nm, first_seen_at
                  FROM found_items
                 WHERE ${where.join(' AND ')}
                 ORDER BY ${order.join(', ')}
@@ -53,6 +53,7 @@ export const fromRow = (r) => ({
   region: r.region,
   fdPlace: r.detail_fd_place ?? '',
   orgNm: r.detail_org_nm ?? '',
+  firstSeenAt: r.first_seen_at, // 처음 수집한 시각 (DB 문자열, 신규 후보 판정용. 응답에는 넣지 않음)
 })
 
 export function createMatchCandidatesRepo(pool) {
