@@ -1,9 +1,4 @@
-import { mockGetNewCandidates, mockMarkSeen } from '../mocks/newCandidates.js'
 import { api } from './client.js'
-
-// TODO(@kwonminsooo): GET /api/lost-items/:id/new-candidates 가 머지되면 mock 삭제
-// mock은 개발 환경에서만 (배포 빌드에서 가짜 후보가 보이지 않게)
-const USE_MOCK = import.meta.env.DEV
 
 /**
  * 신규 후보 한 건: 매칭 결과 + 접수일 + 보관장소 좌표
@@ -26,7 +21,6 @@ const USE_MOCK = import.meta.env.DEV
  *   hiddenItems?: CandidateItem[] }>}  hiddenItems: "내 물건이 아니에요"로 숨긴 습득물 (newItems·previousItems에서는 빠짐)
  */
 export function getNewCandidates(lostItemId, { signal } = {}) {
-  if (USE_MOCK) return mockGetNewCandidates(lostItemId)
   return api.get(`/api/lost-items/${encodeURIComponent(lostItemId)}/new-candidates`, { signal })
 }
 
@@ -35,14 +29,13 @@ export function getNewCandidates(lostItemId, { signal } = {}) {
  * 상세로 들어갈 때 보낸다 → 다음 재조회 때 신규에서 빠지고 이전 결과로 간다
  */
 export function markSeen(lostItemId, atcId, fdSn) {
-  if (USE_MOCK) return mockMarkSeen(lostItemId, atcId, fdSn)
   const path = [lostItemId, 'seen-items', atcId, fdSn].map(encodeURIComponent).join('/')
   return api.put(`/api/lost-items/${path}`)
 }
 
 /**
  * 결과를 확인했다고 기록 (POST /api/lost-items/:id/viewed → 204). 마지막 조회 시각 갱신
- * TODO(@kim-ch2): 매칭 결과 화면(1a, #25)에서 결과를 다 불러온 뒤 한 번 호출
+ * 매칭 결과 화면(1a)에서 결과를 불러온 뒤 호출한다 (ResultsPage)
  */
 export function markViewed(lostItemId) {
   return api.post(`/api/lost-items/${encodeURIComponent(lostItemId)}/viewed`)

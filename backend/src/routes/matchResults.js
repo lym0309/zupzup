@@ -8,7 +8,7 @@ const FD_SN = /^\d{1,5}$/
 
 const badRequest = (message) => Object.assign(new Error(message), { status: 400 })
 
-function checkIds({ id, atcId, fdSn }) {
+export function checkIds({ id, atcId, fdSn }) {
   if (!LOST_ITEM_ID.test(id)) throw badRequest('분실물 ID 형식이 올바르지 않습니다.')
   if (atcId !== undefined && (!ATC_ID.test(atcId) || !FD_SN.test(fdSn))) {
     throw badRequest('관리번호 형식이 올바르지 않습니다.')

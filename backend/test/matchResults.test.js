@@ -105,13 +105,23 @@ describe('matchCandidatesRepo', () => {
       fromRow({
         atc_id: 'F1', fd_sn: '1', fd_prdt_nm: '지갑', prdt_cl_nm: '지갑 > 남성용 지갑', clr_nm: '블랙(검정)',
         fd_ymd: '2026-11-09', reg_ymd: '2026-11-10', dep_place: '서면지구대', img_url: 'x', region: '부산',
-        detail_fd_place: null, detail_org_nm: null,
+        detail_fd_place: null, detail_org_nm: null, first_seen_at: '2026-11-10 09:00:00',
       }),
     ).toEqual({
       atcId: 'F1', fdSn: '1', fdPrdtNm: '지갑', prdtClNm: '지갑 > 남성용 지갑', clrNm: '블랙(검정)',
       fdYmd: '2026-11-09', regYmd: '2026-11-10', depPlace: '서면지구대', fdFilePathImg: 'x', region: '부산',
-      fdPlace: '', orgNm: '',
+      fdPlace: '', orgNm: '', firstSeenAt: '2026-11-10 09:00:00',
     })
+  })
+})
+
+describe('matchResults.scored', () => {
+  it('숨긴 것까지 점수순 전체 + 처음 수집한 시각 (신규 후보 판정용)', async () => {
+    const deps = fakeDeps({ rows: [item('F1', { firstSeenAt: '2026-11-10 09:00:00' }), item('F2')] })
+    deps.hidden.add(hiddenKey('F1', '1'))
+    const { entries } = await service(deps).scored(ID)
+    // 점수가 같으면 atcId 역순 → F2, F1
+    expect(entries.map((e) => [e.result.atcId, e.firstSeenAt])).toEqual([['F2', null], ['F1', '2026-11-10 09:00:00']])
   })
 })
 
@@ -136,7 +146,9 @@ describe('matchResults.results', () => {
       { key: 'region', score: 100 }, // 시·도만 골랐고 같은 시·도
     ])
     expect(items.find((r) => r.atcId === 'F2').isNew).toBe(true) // 11-11
-    expect(items[0]).not.toHaveProperty('region') // 응답은 MatchResult 필드만
+    expect(items[0]).not.toHaveProperty('region') // 응답은 MatchResult 필드만 (+ 접수일)
+    expect(items[0]).not.toHaveProperty('firstSeenAt')
+    expect(items[0].regYmd).toBe('2026-11-09')
   })
 
   it('조건의 분류·물품명 키워드와 습득일 범위로 후보를 찾는다', async () => {

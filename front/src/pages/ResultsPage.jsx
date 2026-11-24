@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { getMatchResults } from '../api/matchResults.js'
+import { markViewed } from '../api/newCandidates.js'
 import Placeholder from '../components/Placeholder.jsx'
 import MatchResultsView from './results/MatchResultsView.jsx'
 import NewCandidatesView from './results/NewCandidatesView.jsx'
@@ -25,7 +26,11 @@ function MatchResults({ lostItemId }) {
   useEffect(() => {
     const controller = new AbortController()
     getMatchResults(lostItemId, { signal: controller.signal })
-      .then((data) => setResult({ key: lostItemId, data, error: null }))
+      .then((data) => {
+        setResult({ key: lostItemId, data, error: null })
+        // 결과를 확인함 → 다음에 검색 기록의 "새 습득물 n건"은 지금 이후 들어온 것만 센다
+        markViewed(lostItemId).catch(() => {})
+      })
       .catch((error) => {
         if (error.name !== 'AbortError') setResult({ key: lostItemId, data: null, error })
       })

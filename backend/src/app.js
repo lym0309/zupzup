@@ -7,6 +7,7 @@ import { createLookupCodesRepo } from './db/lookupCodesRepo.js'
 import { createLostItemsRepo } from './db/lostItemsRepo.js'
 import { createMatchCandidatesRepo } from './db/matchCandidatesRepo.js'
 import { pingDb, pool } from './db/pool.js'
+import { createSeenItemsRepo } from './db/seenItemsRepo.js'
 import { errorHandler } from './middlewares/errorHandler.js'
 import { notFound } from './middlewares/notFound.js'
 import { createApiRouter } from './routes/index.js'
@@ -16,25 +17,39 @@ import { createKakaoLocal } from './services/kakaoLocal.js'
 import { createLookupCodesService } from './services/lookupCodes.js'
 import { createLostItemsService } from './services/lostItems.js'
 import { createMatchResultsService } from './services/matchResults.js'
+import { createNewCandidatesService } from './services/newCandidates.js'
 import { createPoliceApi } from './services/policeApi.js'
 
 const defaultDeps = () => {
   const policeApi = createPoliceApi()
+  const kakaoLocal = createKakaoLocal()
   const lostItemsRepo = createLostItemsRepo(pool)
-  const lookupCodes = createLookupCodesService({ repo: createLookupCodesRepo(pool), lostItemsRepo })
+  const lookupCodesRepo = createLookupCodesRepo(pool)
+  const hiddenItems = createHiddenItemsRepo(pool)
+  const lookupCodes = createLookupCodesService({ repo: lookupCodesRepo, lostItemsRepo })
   const lostItems = createLostItemsService({ repo: lostItemsRepo })
+  const matchResults = createMatchResultsService({
+    lostItems,
+    candidates: createMatchCandidatesRepo(pool),
+    hiddenItems,
+    policeApi,
+  })
+  const newCandidates = createNewCandidatesService({
+    matchResults,
+    lostItems,
+    seenItems: createSeenItemsRepo(pool),
+    hiddenItems,
+    lookupCodesRepo,
+    kakaoLocal,
+  })
   return {
     pingDb,
-    foundItems: createFoundItemsService({ policeApi, kakaoLocal: createKakaoLocal() }),
+    foundItems: createFoundItemsService({ policeApi, kakaoLocal }),
     lostItems,
     lookupCodes,
-    history: createHistoryService({ repo: createHistoryRepo(pool), lookupCodes }),
-    matchResults: createMatchResultsService({
-      lostItems,
-      candidates: createMatchCandidatesRepo(pool),
-      hiddenItems: createHiddenItemsRepo(pool),
-      policeApi,
-    }),
+    history: createHistoryService({ repo: createHistoryRepo(pool), lookupCodes, counts: newCandidates.counts }),
+    matchResults,
+    newCandidates,
   }
 }
 
